@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klaver-akkorder · fingersætning</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --txt:#e7eaf0; --muted:#aab3c2;
+    --accent:#4f9dff; --root:#ff7a59; --gold:#ffce54;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.5;padding:24px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type=text]{width:100%;background:#11141a;border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:12px 14px;font-size:16px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  .row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .seg{display:inline-flex;background:#11141a;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{background:transparent;border:0;color:var(--muted);padding:9px 14px;font-size:14px;cursor:pointer}
+  .seg button.on{background:var(--accent);color:#fff}
+  .btn{background:#11141a;border:1px solid var(--line);color:var(--txt);border-radius:10px;
+    padding:10px 16px;font-size:14px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+
+  /* fokus-markering (tilgængelighed) */
+  a:focus-visible,button:focus-visible,input:focus-visible,.mini:focus-visible,.chip:focus-visible{
+    outline:3px solid var(--gold);outline-offset:2px}
+
+  /* stor visning af aktuel akkord */
+  .curname{font-size:24px;font-weight:700;margin:2px 0 10px}
+  #bigkb{max-width:720px}
+  #bigkb svg{border-radius:0 0 8px 8px}
+  .details{display:flex;gap:26px;flex-wrap:wrap;margin-top:12px;font-size:14px}
+  .details b{color:var(--txt)}
+  .details span{color:var(--muted)}
+  .fingerchip{display:inline-block;background:#11141a;border:1px solid var(--line);
+    border-radius:8px;padding:2px 8px;margin-left:2px;font-variant-numeric:tabular-nums}
+
+  /* transport */
+  .playbtn{background:var(--accent);border:0;color:#fff;font-size:16px;font-weight:600;
+    border-radius:10px;padding:12px 22px;cursor:pointer;min-width:130px}
+  .playbtn.on{background:var(--root)}
+  input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+  .chk{display:inline-flex;align-items:center;gap:7px;color:var(--txt);font-size:14px;cursor:pointer;margin-right:16px}
+  .chk input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  #beatdot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#3a3f4a;
+    margin-left:10px;vertical-align:middle}
+  #beatdot.on{background:var(--gold)}
+  #beatdot.acc{background:var(--root)}
+
+  /* mini-klaviaturer (hele sangen) */
+  #minis{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .mini{background:#11141a;border:1px solid var(--line);border-radius:10px;padding:9px 9px 7px;
+    cursor:pointer;text-align:center;color:var(--txt);transition:transform .12s,border-color .12s;
+    font-family:inherit}
+  .mini:hover{border-color:var(--accent)}
+  .mini.active{border-color:var(--accent);background:#12233b;transform:scale(1.05)}
+  .mini.bad{border-color:#5a2b2b}
+  .mini .mn{font-size:14px;font-weight:700;margin-bottom:6px}
+  .mini .mf{font-size:11px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums}
+  .mini svg{display:block}
+
+  /* forslag / chips */
+  #nextsug{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:#11141a;border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+    cursor:pointer;min-width:74px;transition:.12s;color:var(--txt);font-family:inherit;text-align:left}
+  .chip:hover{border-color:var(--accent)}
+  .chip .cn{font-size:16px;font-weight:700}
+  .chip .cf{font-size:11px;color:var(--muted);margin-top:3px}
+  .empty{color:var(--muted);font-size:14px}
+  kbd{background:#11141a;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px}
+
+  /* print-ark */
+  #printsheet{display:none}
+  @media print{
+    body{background:#fff;color:#000;padding:0}
+    h1,.sub,.card{display:none !important}
+    #printsheet{display:block;padding:0}
+    #printsheet h2{font-size:13px;margin:0 0 6px}
+    /* 5 kolonner × 6 rækker = 30 akkorder pr. side */
+    #printgrid{display:grid;gap:5px;grid-template-columns:repeat(5,1fr)}
+    .pc{border:1px solid #bbb;border-radius:5px;padding:4px 3px;break-inside:avoid;text-align:center}
+    .pc .pcn{font-weight:700;font-size:11px;margin-bottom:2px;line-height:1.2}
+    .pc .pct{font-size:9px;margin-top:2px;line-height:1.2}
+    .pc .pcf{font-size:9px;color:#333;margin-top:1px;font-variant-numeric:tabular-nums}
+    @page{margin:9mm}
+  }
+</style>
+</head>
+<body>
+
+<h1>🎹 Klaver-akkorder</h1>
+<p class="sub">Skriv akkorderne til sangen, se dem på klaviatur, og find den bedste fingersætning.</p>
+
+<div class="card">
+  <label for="inp">Akkorder (adskilt af mellemrum eller komma)</label>
+  <input id="inp" type="text" placeholder="fx  C  Am  F  G7  Dm7  Cmaj7  E/G#" value="C Am F G7">
+  <div class="row" style="margin-top:12px;gap:10px">
+    <button id="copybtn" class="btn">🔗 Kopiér link</button>
+    <button id="printbtn" class="btn">🖨 Print / gem som PDF</button>
+    <div style="flex:1"></div>
+    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>9</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> · bas: <kbd>C/E</kbd></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="margin-bottom:14px">
+    <div style="flex:0 0 auto">
+      <label>Fingernumre</label>
+      <div class="seg" id="handseg" role="radiogroup" aria-label="Hånd">
+        <button data-hand="R" class="on" role="radio" aria-checked="true">Højre hånd</button>
+        <button data-hand="L" role="radio" aria-checked="false">Venstre hånd</button>
+      </div>
+    </div>
+    <div style="flex:0 0 auto">
+      <label>Greb</label>
+      <div class="seg" id="modeseg" role="radiogroup" aria-label="Greb">
+        <button data-mode="auto" class="on" role="radio" aria-checked="true">Auto (blødt skift)</button>
+        <button data-mode="root" role="radio" aria-checked="false">Grundstilling</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="curname" id="curname" aria-live="polite">C</p>
+  <div id="bigkb" role="img" aria-label="Klaviatur med den aktuelle akkord"></div>
+  <div class="details" id="details"></div>
+</div>
+
+<div class="card" id="transport">
+  <div class="row" style="align-items:flex-end;gap:22px">
+    <div style="flex:0 0 auto">
+      <label>Afspilning <span id="beatdot" aria-hidden="true"></span></label>
+      <button id="play" class="playbtn" aria-pressed="false">▶ Afspil</button>
+      <div class="hint" style="margin-top:4px">eller tryk <kbd>mellemrum</kbd></div>
+    </div>
+    <div style="flex:1 1 220px;min-width:200px">
+      <label>Tempo: <b id="bpmval">90</b> BPM</label>
+      <input id="bpm" type="range" min="40" max="200" value="90" aria-label="Tempo i BPM">
+    </div>
+    <div style="flex:0 0 auto">
+      <label>Slag pr. akkord</label>
+      <div class="seg" id="bpcseg" role="radiogroup" aria-label="Slag pr. akkord">
+        <button data-b="1" role="radio" aria-checked="false">1</button>
+        <button data-b="2" role="radio" aria-checked="false">2</button>
+        <button data-b="4" class="on" role="radio" aria-checked="true">4</button>
+      </div>
+    </div>
+    <div style="flex:0 0 auto">
+      <label>Lyd</label>
+      <label class="chk"><input type="checkbox" id="snd" checked> Akkorder</label>
+      <label class="chk"><input type="checkbox" id="met"> Metronom</label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <label>Sangen — klik på en akkord for at forstørre den ovenfor</label>
+  <div id="minis"><span class="empty">Skriv nogle akkorder herover…</span></div>
+</div>
+
+<div class="card">
+  <label>Forslag til næste akkord — klik for at føje til sangen</label>
+  <div id="nextsug"><span class="empty">Skriv nogle akkorder herover…</span></div>
+</div>
+
+<div id="printsheet">
+  <h2 id="printtitle">Klaver-akkorder</h2>
+  <div id="printgrid"></div>
+</div>
+
+<script>
+/* ---------- musikteori ---------- */
+const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const PC = {C:0,"C#":1,DB:1,D:2,"D#":3,EB:3,E:4,F:5,"F#":6,GB:6,G:7,"G#":8,AB:8,A:9,"A#":10,BB:10,B:11};
+
+const QUAL = {
+  "":{name:"",iv:[0,4,7]}, "maj":{name:"",iv:[0,4,7]},
+  "m":{name:"m",iv:[0,3,7]}, "min":{name:"m",iv:[0,3,7]}, "-":{name:"m",iv:[0,3,7]},
+  "dim":{name:"dim",iv:[0,3,6]}, "°":{name:"dim",iv:[0,3,6]},
+  "aug":{name:"aug",iv:[0,4,8]}, "+":{name:"aug",iv:[0,4,8]},
+  "sus2":{name:"sus2",iv:[0,2,7]}, "sus4":{name:"sus4",iv:[0,5,7]}, "sus":{name:"sus4",iv:[0,5,7]},
+  "6":{name:"6",iv:[0,4,7,9]}, "m6":{name:"m6",iv:[0,3,7,9]},
+  "7":{name:"7",iv:[0,4,7,10]}, "maj7":{name:"maj7",iv:[0,4,7,11]}, "M7":{name:"maj7",iv:[0,4,7,11]},
+  "m7":{name:"m7",iv:[0,3,7,10]}, "min7":{name:"m7",iv:[0,3,7,10]},
+  "m7b5":{name:"m7b5",iv:[0,3,6,10]}, "ø":{name:"m7b5",iv:[0,3,6,10]},
+  "dim7":{name:"dim7",iv:[0,3,6,9]}, "°7":{name:"dim7",iv:[0,3,6,9]},
+  "7sus4":{name:"7sus4",iv:[0,5,7,10]},
+  "add9":{name:"add9",iv:[0,4,7,14]}, "madd9":{name:"madd9",iv:[0,3,7,14]},
+  "9":{name:"9",iv:[0,4,7,10,14]}, "maj9":{name:"maj9",iv:[0,4,7,11,14]}, "m9":{name:"m9",iv:[0,3,7,10,14]},
+};
+const QUAL_KEYS = Object.keys(QUAL).filter(k=>k).sort((a,b)=>b.length-a.length);
+
+function parseChord(sym){
+  sym = sym.trim(); if(!sym) return null;
+  let bass=null, main=sym;
+  if(sym.includes("/")){ const p=sym.split("/"); main=p[0]; bass=p[1]; }
+  const m = main.match(/^([A-Ga-g])([#b]?)/);
+  if(!m) return {sym, error:true};
+  const rootName = m[1].toUpperCase() + (m[2]||"");
+  const rootPC = PC[m[1].toUpperCase()+(m[2].toUpperCase())] ?? PC[m[1].toUpperCase()];
+  let rest = main.slice(m[0].length), qual=null;
+  if(rest==="") qual=QUAL[""];
+  else for(const k of QUAL_KEYS){ if(rest===k){qual=QUAL[k];break;} }
+  if(!qual) return {sym, error:true};
+  let bassPC=null;
+  if(bass){ const bm=bass.match(/^([A-Ga-g])([#b]?)/); if(bm) bassPC=PC[bm[1].toUpperCase()+(bm[2]?bm[2].toUpperCase():"")]??PC[bm[1].toUpperCase()]; }
+  return {sym, error:false, rootName, rootPC, iv:qual.iv, qname:qual.name, bassPC};
+}
+
+const LOW=36, HIGH=96;
+const RHmap={2:[1,5],3:[1,3,5],4:[1,2,3,5],5:[1,2,3,4,5]};
+const LHmap={2:[5,1],3:[5,3,1],4:[5,3,2,1],5:[5,4,3,2,1]};
+function fingers(n){
+  return {rh:RHmap[n]||Array.from({length:n},(_,i)=>Math.min(5,i+1)),
+          lh:LHmap[n]||Array.from({length:n},(_,i)=>Math.max(1,5-i))};
+}
+// grundstilling
+function voicing(ch){
+  const rootMidi = 60 + ch.rootPC;
+  const pitches = ch.iv.map(i => rootMidi + i);
+  let bassMidi = null;
+  if(ch.bassPC!=null){ bassMidi = 48 + ch.bassPC; if(bassMidi>=rootMidi) bassMidi-=12; }
+  const all = bassMidi!=null ? [bassMidi,...pitches] : pitches.slice();
+  const uniq=[...new Set(all)].sort((a,b)=>a-b);
+  const f=fingers(uniq.length);
+  return {pitches:uniq, rootPC:ch.rootPC, rh:f.rh, lh:f.lh};
+}
+// auto voice-leading
+function chordPcs(ch){
+  const core=[...new Set(ch.iv.map(i=>((ch.rootPC+i)%12+12)%12))];
+  if(ch.bassPC!=null && !core.includes(ch.bassPC)) core.push(ch.bassPC);
+  return core.sort((a,b)=>a-b);
+}
+function stackUp(order, startMidi){
+  const v=[startMidi];
+  for(let i=1;i<order.length;i++){
+    let cand = v[i-1] - (v[i-1]%12) + order[i];
+    while(cand<=v[i-1]) cand+=12;
+    v.push(cand);
+  }
+  return v;
+}
+function candVoicings(ch){
+  const pcs=chordPcs(ch), n=pcs.length, out=[];
+  for(let inv=0; inv<n; inv++){
+    const order=[]; for(let i=0;i<n;i++) order.push(pcs[(inv+i)%n]);
+    if(ch.bassPC!=null && order[0]!==ch.bassPC) continue;
+    for(let base=48; base<=72; base+=12){
+      const v=stackUp(order, base+order[0]);
+      if(v[0]<LOW || v[v.length-1]>HIGH) continue;
+      out.push(v);
+    }
+  }
+  return out.length?out:[stackUp(pcs,60+pcs[0])];
+}
+const center=v=>v.reduce((a,b)=>a+b,0)/v.length;
+function nnDist(a,b){let s=0;for(const x of a){let m=1e9;for(const y of b)m=Math.min(m,Math.abs(x-y));s+=m;}return s;}
+function scoreV(v,prev){
+  let s=0.15*Math.abs(center(v)-62);
+  if(prev) s+=nnDist(v,prev)+nnDist(prev,v)+0.4*Math.abs(center(v)-center(prev));
+  return s;
+}
+function computeChain(){
+  const chain=[]; let prev=null;
+  for(const ch of song){
+    if(ch.error){ chain.push(null); continue; }
+    const cands=candVoicings(ch);
+    let best=cands[0], bs=1e18;
+    for(const v of cands){ const s=scoreV(v,prev); if(s<bs){bs=s;best=v;} }
+    const f=fingers(best.length);
+    chain.push({pitches:best, rootPC:ch.rootPC, rh:f.rh, lh:f.lh,
+                prevCenter: prev?center(prev):null, center:center(best)});
+    prev=best;
+  }
+  return chain;
+}
+
+/* ---------- klaviatur som SVG (genbrugt: stort + mini + print) ---------- */
+function drawKB(v,{W=680,H=150,fng=true}={}){
+  const isB=pc=>[1,3,6,8,10].includes(pc), ps=v.pitches;
+  const lo=Math.floor((Math.min(...ps)-2)/12)*12;
+  const hi=Math.ceil((Math.max(...ps)+3)/12)*12-1;
+  const wx={}; let n=0;
+  for(let m=lo;m<=hi;m++) if(!isB(m%12)) wx[m]=n++;
+  const ww=W/n, wh=H, bw=ww*0.6, bh=H*0.62;
+  const xOf=m=> isB(m%12)? wx[m-1]*ww+ww-bw/2 : wx[m]*ww;
+  const finger = hand==="R"? v.rh : v.lh;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet">`;
+  for(let m=lo;m<=hi;m++) if(!isB(m%12))
+    s+=`<rect x="${xOf(m).toFixed(1)}" y="0" width="${(ww-1).toFixed(1)}" height="${wh}" rx="2" fill="#f4f4f7" stroke="#c7c7cf" stroke-width="1"/>`;
+  for(let m=lo;m<=hi;m++) if(isB(m%12))
+    s+=`<rect x="${xOf(m).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="#222"/>`;
+  ps.forEach((p,i)=>{
+    const black=isB(p%12), r=Math.min(ww*0.42,16);
+    const cx=xOf(p)+(black?bw/2:ww/2), cy=black? bh-r-3 : wh-r-5;
+    const root=(p%12)===v.rootPC, fill= root?"#ff7a59":(black?"#ffce54":"#4f9dff");
+    s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${root?'#fff':'#0b0d12'}" stroke-width="${root?2.5:0.8}"/>`;
+    if(fng) s+=`<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="${(r*1.15).toFixed(1)}" font-weight="700" font-family="sans-serif" text-anchor="middle" dominant-baseline="central" fill="${black&&!root?'#111':'#fff'}">${finger[i]}</text>`;
+  });
+  return s+`</svg>`;
+}
+
+/* ---------- state ---------- */
+let hand="R", mode="auto", bpc=4, song=[], active=0, chain=[];
+const $=id=>document.getElementById(id);
+function chName(item){ return item.rootName+item.qname+(item.bassPC!=null?"/"+NOTES[item.bassPC]:""); }
+function getV(idx){
+  const item=song[idx];
+  if(!item || item.error) return null;
+  return mode==="auto" ? chain[idx] : voicing(item);
+}
+
+/* ---------- render ---------- */
+function setActive(i){
+  active=i;
+  const item=song[i], nameEl=$("curname"), det=$("details"), big=$("bigkb");
+  if(!item || item.error){
+    nameEl.textContent = item? "„"+item.sym+"“ — kunne ikke tolkes" : "—";
+    det.innerHTML=""; big.innerHTML=""; markMini(i); return;
+  }
+  const v=getV(i);
+  nameEl.textContent = item.rootName + item.qname + (item.bassPC!=null? " / bas "+NOTES[item.bassPC]:"");
+  big.innerHTML = drawKB(v,{W:680,H:150});
+  const names = v.pitches.map(p=>NOTES[p%12]);
+  let moveLine="";
+  if(mode==="auto" && v.prevCenter!=null){
+    const d=Math.round(v.center-v.prevCenter);
+    moveLine=`<div><span>Håndbevægelse fra forrige:</span> <b>${d===0?"ingen":(Math.abs(d)+" halvtoner "+(d>0?"↑":"↓"))}</b></div>`;
+  }
+  det.innerHTML =
+    `<div><span>Toner (lav→høj):</span> <b>${names.join(" · ")}</b></div>`+
+    `<div><span>Højre hånd:</span> <span class="fingerchip">${v.rh.join(" - ")}</span></div>`+
+    `<div><span>Venstre hånd:</span> <span class="fingerchip">${v.lh.join(" - ")}</span></div>`+moveLine;
+  markMini(i);
+}
+function markMini(i){
+  const el=$("minis").children;
+  for(let k=0;k<el.length;k++) if(el[k].classList) el[k].classList.toggle("active", k===i);
+  if(el[i] && el[i].scrollIntoView) el[i].scrollIntoView({block:"nearest",inline:"nearest"});
+}
+function renderMinis(){
+  const wrap=$("minis");
+  if(!song.length){ wrap.innerHTML='<span class="empty">Skriv nogle akkorder herover…</span>'; return; }
+  wrap.innerHTML="";
+  song.forEach((item,i)=>{
+    const c=document.createElement("button");
+    c.className="mini"+(i===active?" active":"")+(item.error?" bad":"");
+    if(item.error){ c.innerHTML=`<div class="mn">${item.sym} ?</div><div class="mf">?</div>`; }
+    else{
+      const v=getV(i), fng=(hand==="R"?v.rh:v.lh).join(" - ");
+      c.innerHTML=`<div class="mn">${i+1}. ${chName(item)}</div>${drawKB(v,{W:150,H:56})}<div class="mf">${fng}</div>`;
+    }
+    c.onclick=()=>setActive(i);
+    wrap.appendChild(c);
+  });
+}
+
+/* ---------- forslag til næste akkord ---------- */
+function triadQual(ch){
+  const s=new Set(ch.iv.map(i=>i%12));
+  if(s.has(4)&&s.has(8)) return "aug";
+  if(s.has(3)&&s.has(6)) return "dim";
+  if(s.has(4)) return "maj";
+  if(s.has(3)) return "min";
+  return "maj";
+}
+const MAJ={0:"maj",2:"min",4:"min",5:"maj",7:"maj",9:"min",11:"dim"};
+const MIN={0:"min",2:"dim",3:"maj",5:"min",7:"min",8:"maj",10:"maj"};
+function inferKey(chords){
+  let best=null,bestScore=0.01;
+  for(let root=0;root<12;root++){
+    for(const md of ["maj","min"]){
+      const table=md==="maj"?MAJ:MIN; let score=0,tonicCount=0;
+      for(const ch of chords){
+        const deg=((ch.rootPC-root)+12)%12;
+        if(deg in table){
+          const q=triadQual(ch), exp=table[deg];
+          const ok = q===exp || (md==="min"&&deg===7&&(q==="maj"||q==="min"));
+          score += ok?2:0.5;
+          if(deg===0 && ok) tonicCount++;
+        }
+      }
+      score += tonicCount*1.0;                            // tonika der optræder ofte vejer tungt
+      const last=chords[chords.length-1], first=chords[0];
+      if(((first.rootPC-root)+12)%12===0) score+=1.5;     // sange starter typisk på tonika
+      if(((last.rootPC-root)+12)%12===0) score+=1.5;      // ...eller slutter på den
+      if(score>bestScore){ bestScore=score; best={rootPC:root,mode:md}; }
+    }
+  }
+  return best;
+}
+const MAJ_DEG={0:"I",2:"ii",4:"iii",5:"IV",7:"V",9:"vi",11:"vii°"};
+const MIN_DEG={0:"i",2:"ii°",3:"III",5:"iv",7:"V",8:"VI",10:"VII"};
+const RULES_MAJ={I:["V","IV","vi","ii"],ii:["V","IV"],iii:["vi","IV"],IV:["V","I","ii"],V:["I","vi"],vi:["IV","ii","V"],"vii°":["I","iii"]};
+const RULES_MIN={i:["VI","iv","V","VII"],"ii°":["V","i"],III:["VI","iv"],iv:["V","i","VII"],V:["i","VI"],VI:["iv","V","III"],VII:["III","i"]};
+const SEMI_MAJ={I:0,ii:2,iii:4,IV:5,V:7,vi:9,"vii°":11};
+const SEMI_MIN={i:0,"ii°":2,III:3,iv:5,V:7,VI:8,VII:10};
+const SUF_MAJ={I:"",ii:"m",iii:"m",IV:"",V:"",vi:"m","vii°":"dim"};
+const SUF_MIN={i:"m","ii°":"dim",III:"",iv:"m",V:"",VI:"",VII:""};
+function diatonicSuggest(last,key){
+  const isMaj=key.mode==="maj";
+  const degMap=isMaj?MAJ_DEG:MIN_DEG, rules=isMaj?RULES_MAJ:RULES_MIN;
+  const semi=isMaj?SEMI_MAJ:SEMI_MIN, suf=isMaj?SUF_MAJ:SUF_MIN;
+  const lastDeg=((last.rootPC-key.rootPC)+12)%12, fromRoman=degMap[lastDeg];
+  if(!fromRoman || !rules[fromRoman]) return [];
+  const keyName=NOTES[key.rootPC]+(isMaj?"-dur":"-mol");
+  return rules[fromRoman].map(toR=>{
+    const pc=(key.rootPC+semi[toR])%12;
+    return {sym:NOTES[pc]+suf[toR], label:`${fromRoman}→${toR} · ${keyName}`};
+  });
+}
+function fallbackSuggest(last){
+  const q=triadQual(last), dom=last.iv.map(i=>i%12).includes(10)&&q==="maj";
+  const R=last.rootPC, N=(s,x)=>NOTES[(R+s+12)%12]+x, out=[];
+  if(dom){ out.push({sym:N(5,""),label:"opløsning V→I"}); out.push({sym:N(2,"m"),label:"bedrag V→vi"}); }
+  else if(q==="maj"){ out.push({sym:N(7,""),label:"til V"}); out.push({sym:N(5,""),label:"til IV"}); out.push({sym:N(9,"m"),label:"til relativ mol"}); }
+  else if(q==="min"){ out.push({sym:N(5,"m"),label:"til iv"}); out.push({sym:N(7,""),label:"til V (dur)"}); out.push({sym:N(3,""),label:"til relativ dur"}); }
+  else if(q==="dim"){ out.push({sym:N(1,""),label:"opløsning ½ tone op"}); out.push({sym:N(5,""),label:"videre til IV"}); }
+  else { out.push({sym:N(5,""),label:"til IV"}); out.push({sym:N(7,""),label:"til V"}); }
+  return out;
+}
+function suggestNext(){
+  const wrap=$("nextsug");
+  const good=song.filter(c=>!c.error);
+  if(!good.length){ wrap.innerHTML='<span class="empty">Skriv nogle akkorder herover…</span>'; return; }
+  const last=good[good.length-1], key=inferKey(good);
+  let sugs = key? diatonicSuggest(last,key):[];
+  if(!sugs.length) sugs=fallbackSuggest(last);
+  const seen=new Set(), final=[];
+  for(const s of sugs){ if(seen.has(s.sym))continue; seen.add(s.sym); final.push(s); if(final.length>=4)break; }
+  wrap.innerHTML="";
+  final.forEach(s=>{
+    const c=document.createElement("button"); c.className="chip";
+    c.innerHTML=`<div class="cn">${s.sym}</div><div class="cf">${s.label}</div>`;
+    c.onclick=()=>{ const inp=$("inp"); inp.value=(inp.value.trim()+" "+s.sym).trim(); parseInput(); active=song.length-1; setActive(active); };
+    wrap.appendChild(c);
+  });
+}
+
+/* ---------- print ---------- */
+function renderPrintSheet(){
+  const g=$("printgrid"); g.innerHTML="";
+  $("printtitle").textContent = "Klaver-akkorder — " + song.filter(c=>!c.error).map(chName).join("  ");
+  song.forEach((item,i)=>{
+    const cell=document.createElement("div"); cell.className="pc";
+    if(item.error){ cell.innerHTML=`<div class="pcn">${item.sym} ?</div>`; g.appendChild(cell); return; }
+    const v=getV(i), toner=v.pitches.map(p=>NOTES[p%12]).join(" · ");
+    cell.innerHTML=`<div class="pcn">${i+1}. ${chName(item)}</div>${drawKB(v,{W:180,H:46})}`+
+      `<div class="pct">${toner}</div><div class="pcf">HH ${v.rh.join("-")} · VH ${v.lh.join("-")}</div>`;
+    g.appendChild(cell);
+  });
+}
+
+/* ---------- URL-state ---------- */
+function setSeg(sel,attr,val){
+  document.querySelectorAll(sel+" button").forEach(b=>{
+    const on=b.dataset[attr]===val;
+    b.classList.toggle("on",on); b.setAttribute("aria-checked",on?"true":"false");
+  });
+}
+function writeURL(){
+  const p=new URLSearchParams();
+  p.set("c",$("inp").value); p.set("mode",mode); p.set("hand",hand);
+  p.set("bpc",bpc); p.set("bpm",$("bpm").value);
+  history.replaceState(null,"","#"+p.toString());
+}
+function readURL(){
+  if(!location.hash) return;
+  const p=new URLSearchParams(location.hash.slice(1));
+  if(p.has("c")) $("inp").value=p.get("c");
+  if(["auto","root"].includes(p.get("mode"))){ mode=p.get("mode"); setSeg("#modeseg","mode",mode); }
+  if(["R","L"].includes(p.get("hand"))){ hand=p.get("hand"); setSeg("#handseg","hand",hand); }
+  if(["1","2","4"].includes(p.get("bpc"))){ bpc=+p.get("bpc"); setSeg("#bpcseg","b",p.get("bpc")); }
+  const b=+p.get("bpm"); if(b>=40&&b<=200){ $("bpm").value=b; $("bpmval").textContent=b; }
+}
+
+/* ---------- refresh + input ---------- */
+function refresh(){
+  chain=computeChain();
+  if(active>=song.length) active=Math.max(0,song.length-1);
+  renderMinis(); suggestNext(); setActive(active); writeURL();
+}
+function parseInput(){
+  song = $("inp").value.split(/[\s,]+/).filter(Boolean).map(parseChord).filter(Boolean);
+  if(active>=song.length) active=Math.max(0,song.length-1);
+  refresh();
+}
+$("inp").addEventListener("input", parseInput);
+document.querySelectorAll("#handseg button").forEach(b=> b.onclick=()=>{ hand=b.dataset.hand; setSeg("#handseg","hand",hand); refresh(); });
+document.querySelectorAll("#modeseg button").forEach(b=> b.onclick=()=>{ mode=b.dataset.mode; setSeg("#modeseg","mode",mode); refresh(); });
+document.querySelectorAll("#bpcseg button").forEach(b=> b.onclick=()=>{ bpc=+b.dataset.b; setSeg("#bpcseg","b",b.dataset.b); writeURL(); });
+$("printbtn").onclick=()=>{ renderPrintSheet(); window.print(); };
+$("copybtn").onclick=()=>{
+  writeURL();
+  const t=$("copybtn").textContent;
+  navigator.clipboard.writeText(location.href).then(()=>{ $("copybtn").textContent="✓ Kopieret"; setTimeout(()=>$("copybtn").textContent=t,1500); });
+};
+
+/* ---------- afspilning, tempo, metronom, lyd ---------- */
+let audioCtx=null, playing=false, curBeat=0, nextTime=0, timer=null;
+const visQ=[];
+function ac(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+const bpm=()=>+$("bpm").value;
+function beep(freq,t,dur,gain,type){
+  const o=ac().createOscillator(), g=ac().createGain();
+  o.type=type||"sine"; o.frequency.value=freq; o.connect(g); g.connect(ac().destination);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.start(t); o.stop(t+dur+0.03);
+}
+function playChordAt(idx,t){
+  const v=getV(idx); if(!v) return;
+  const dur=(60/bpm())*bpc*0.92;
+  v.pitches.forEach((p,i)=> beep(mtof(p),t+i*0.012,dur,0.12,"triangle"));
+}
+function scheduler(){
+  if(!playing) return;
+  const spb=60/bpm();
+  while(nextTime < ac().currentTime + 0.12){
+    const beatInChord=curBeat%bpc, chordIdx=Math.floor(curBeat/bpc)%Math.max(1,song.length);
+    if(beatInChord===0){ if($("snd").checked) playChordAt(chordIdx,nextTime); visQ.push({idx:chordIdx,t:nextTime,acc:true}); }
+    else visQ.push({idx:-1,t:nextTime,acc:false});
+    if($("met").checked){ const a=beatInChord===0; beep(a?1600:950,nextTime,0.045,a?0.28:0.16,"square"); }
+    curBeat++; nextTime+=spb;
+  }
+  timer=setTimeout(scheduler,25);
+}
+function visLoop(){
+  if(!playing) return;
+  const now=ac().currentTime;
+  while(visQ.length && visQ[0].t<=now){
+    const e=visQ.shift();
+    if(e.idx>=0 && e.idx!==active) setActive(e.idx);
+    const d=$("beatdot"); d.className = e.acc?"acc":"on";
+    setTimeout(()=>{ if($("beatdot")) $("beatdot").className=""; },90);
+  }
+  requestAnimationFrame(visLoop);
+}
+function startPlay(){
+  if(!song.length) return;
+  ac().resume(); playing=true; visQ.length=0;
+  curBeat=active*bpc; nextTime=ac().currentTime+0.1;
+  $("play").textContent="⏸ Stop"; $("play").classList.add("on"); $("play").setAttribute("aria-pressed","true");
+  scheduler(); requestAnimationFrame(visLoop);
+}
+function stopPlay(){
+  playing=false; clearTimeout(timer);
+  $("play").textContent="▶ Afspil"; $("play").classList.remove("on"); $("play").setAttribute("aria-pressed","false");
+  if($("beatdot")) $("beatdot").className="";
+}
+$("play").onclick=()=> playing? stopPlay() : startPlay();
+$("bpm").addEventListener("input",e=>{ $("bpmval").textContent=e.target.value; writeURL(); });
+document.addEventListener("keydown",e=>{ if(e.code==="Space" && e.target.tagName!=="INPUT"){ e.preventDefault(); $("play").click(); }});
+
+/* ---------- init ---------- */
+window.addEventListener("hashchange", ()=>{ readURL(); parseInput(); });
+readURL();
+parseInput();
+</script>
+</body>
+</html>
