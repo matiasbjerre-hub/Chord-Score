@@ -28,6 +28,23 @@
     padding:10px 16px;font-size:14px;cursor:pointer}
   .btn:hover{border-color:var(--accent)}
 
+  /* sangsøgning */
+  .searchbox{position:relative}
+  #songresults{list-style:none;margin:4px 0 0;padding:4px;position:absolute;left:0;right:0;top:100%;
+    background:#181b22;border:1px solid var(--line);border-radius:10px;max-height:280px;overflow-y:auto;
+    z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  #songresults[hidden]{display:none}
+  #songresults li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer}
+  #songresults li.sr-empty{cursor:default;color:var(--muted);font-size:13px}
+  #songresults li.active,#songresults li:hover{background:#1c2230}
+  #songresults .sr-main{flex:1;min-width:0}
+  #songresults .sr-t{font-size:14px;color:var(--txt)}
+  #songresults .sr-a{font-size:12px;color:var(--muted)}
+  #songresults .sr-badge{font-size:11px;color:var(--gold);flex:0 0 auto}
+  #songresults .sr-del{flex:0 0 auto;background:transparent;border:0;color:var(--muted);font-size:15px;
+    cursor:pointer;padding:2px 7px;border-radius:6px;line-height:1}
+  #songresults .sr-del:hover{color:var(--root);background:#241417}
+
   /* fokus-markering (tilgængelighed) */
   a:focus-visible,button:focus-visible,input:focus-visible,.mini:focus-visible,.chip:focus-visible{
     outline:3px solid var(--gold);outline-offset:2px}
@@ -99,6 +116,16 @@
 <p class="sub">Skriv akkorderne til sangen, se dem på klaviatur, og find den bedste fingersætning.</p>
 
 <div class="card">
+  <label for="songsearch">Søg efter sang</label>
+  <div class="row" style="gap:10px;align-items:flex-start;margin-bottom:16px">
+    <div class="searchbox" style="flex:1 1 260px;min-width:200px">
+      <input id="songsearch" type="text" role="combobox" aria-expanded="false" aria-controls="songresults"
+        aria-autocomplete="list" autocomplete="off" placeholder="fx Papirsklip, Let It Be, Nu er det jul igen">
+      <ul id="songresults" class="songresults" role="listbox" aria-label="Sangresultater" hidden></ul>
+    </div>
+    <button id="savesong" class="btn" style="flex:0 0 auto">💾 Gem som sang</button>
+  </div>
+
   <label for="inp">Akkorder (adskilt af mellemrum eller komma)</label>
   <input id="inp" type="text" placeholder="fx  C  Am  F  G7  Dm7  Cmaj7  E/G#" value="C Am F G7">
   <div class="row" style="margin-top:12px;gap:10px">
@@ -306,6 +333,109 @@ function drawKB(v,{W=680,H=150,fng=true}={}){
   return s+`</svg>`;
 }
 
+/* ---------- sangkatalog ----------
+   Akkorderne er en spilbar forenkling (vers/omkvæd), ikke fulde transskriptioner.
+   Kun akkordkvaliteter parseChord() forstår: m, 7, maj7, m7, dim, aug, sus2, sus4, 6, 9, add9, m7b5, /bas. */
+const SONGS = [
+  // Danske klassikere & højskole
+  {t:"Papirsklip", a:"Kim Larsen", c:"C G Am F", bpm:112, bpc:2},
+  {t:"Om lidt", a:"Kim Larsen & Bellamy", c:"G D Em C", bpm:76, bpc:4},
+  {t:"Kom herind lille du", a:"Kim Larsen", c:"D A Bm G", bpm:104, bpc:2},
+  {t:"Susanne", a:"Kim Larsen", c:"D G A D", bpm:118, bpc:2},
+  {t:"Midt om natten", a:"Kim Larsen", c:"Em C G D", bpm:96, bpc:4},
+  {t:"To dråber vand", a:"Kim Larsen", c:"G C D G", bpm:100, bpc:4},
+  {t:"Jutlandia", a:"Kim Larsen", c:"D Bm G A", bpm:108, bpc:2},
+  {t:"Vild med dig", a:"Kim Larsen", c:"C Am F G", bpm:120, bpc:2},
+  {t:"Kringsat af fjender", a:"Kim Larsen", c:"Am Dm E7 Am", bpm:82, bpc:4},
+  {t:"Jeg vil male dig en sang", a:"Kim Larsen", c:"D G Bm A", bpm:88, bpc:4},
+  {t:"Kvinde min", a:"Gasolin'", c:"C F G Am", bpm:100, bpc:4},
+  {t:"Langebro", a:"Gasolin'", c:"G C D Em", bpm:112, bpc:2},
+  {t:"Kirsten Giftekniv", a:"Gasolin'", c:"Am F C G", bpm:118, bpc:2},
+  {t:"Rabatten", a:"Gasolin'", c:"G C D G", bpm:126, bpc:2},
+  {t:"De smukke unge mennesker", a:"Gasolin'", c:"Am G F E", bpm:90, bpc:4},
+  {t:"Danmark", a:"TV-2", c:"D A Bm G", bpm:130, bpc:2},
+  {t:"Kloden drejer", a:"TV-2", c:"C G Am F", bpm:124, bpc:2},
+  {t:"Elektrisk pige", a:"TV-2", c:"G D C G", bpm:132, bpc:2},
+  {t:"Fri os fra", a:"Shu-bi-dua", c:"G C D Em", bpm:110, bpc:4},
+  {t:"Fine fine fis", a:"Shu-bi-dua", c:"C F G7 C", bpm:104, bpc:4},
+  {t:"Marilyn", a:"Sanne Salomonsen", c:"Am F C G", bpm:98, bpc:4},
+  {t:"Det er svært at være mig", a:"Sanne Salomonsen", c:"G D Em C", bpm:92, bpc:4},
+  {t:"Godnat og god bedring", a:"Danser med Drenge", c:"G C D Em", bpm:120, bpc:2},
+  {t:"Skulle gammel venskab rejn forgo", a:"Trad. nytårssang", c:"G C D G", bpm:80, bpc:4},
+
+  // Internationale pop/rock-klassikere
+  {t:"Let It Be", a:"The Beatles", c:"C G Am F C G F C", bpm:76, bpc:4},
+  {t:"Hey Jude", a:"The Beatles", c:"F C7 Bb F", bpm:74, bpc:4},
+  {t:"Here Comes the Sun", a:"The Beatles", c:"G Em C D", bpm:130, bpc:2},
+  {t:"Yesterday", a:"The Beatles", c:"F Em7 A7 Dm", bpm:96, bpc:4},
+  {t:"Blackbird", a:"The Beatles", c:"G Am7 G F C", bpm:96, bpc:4},
+  {t:"Imagine", a:"John Lennon", c:"C Cmaj7 F Am7 F C", bpm:76, bpc:4},
+  {t:"Wonderwall", a:"Oasis", c:"Em7 G D C", bpm:87, bpc:4},
+  {t:"Don't Look Back in Anger", a:"Oasis", c:"C Em F G", bpm:112, bpc:2},
+  {t:"Perfect", a:"Ed Sheeran", c:"G Em C D", bpm:63, bpc:4},
+  {t:"Thinking Out Loud", a:"Ed Sheeran", c:"D F#m G A", bpm:79, bpc:4},
+  {t:"Someone Like You", a:"Adele", c:"A E F#m D", bpm:67, bpc:4},
+  {t:"Rolling in the Deep", a:"Adele", c:"Cm Bb Ab Cm", bpm:105, bpc:2},
+  {t:"Knockin' on Heaven's Door", a:"Bob Dylan", c:"G D Am7 G D C", bpm:70, bpc:4},
+  {t:"Blowin' in the Wind", a:"Bob Dylan", c:"D G A D", bpm:110, bpc:2},
+  {t:"Hotel California", a:"Eagles", c:"Bm F# A E G D Em F#", bpm:74, bpc:4},
+  {t:"Take It Easy", a:"Eagles", c:"G C D G", bpm:136, bpc:2},
+  {t:"Country Roads", a:"John Denver", c:"G Em C D", bpm:97, bpc:2},
+  {t:"How Deep Is Your Love", a:"Bee Gees", c:"Eb Ab Fm Bb", bpm:70, bpc:4},
+  {t:"The Sound of Silence", a:"Simon & Garfunkel", c:"Am C D F", bpm:106, bpc:4},
+  {t:"Mrs. Robinson", a:"Simon & Garfunkel", c:"Em C D Am", bpm:96, bpc:2},
+  {t:"No Woman No Cry", a:"Bob Marley", c:"C G Am F", bpm:78, bpc:4},
+  {t:"Free Fallin'", a:"Tom Petty", c:"D A Bm G", bpm:82, bpc:4},
+  {t:"With or Without You", a:"U2", c:"D A Bm G", bpm:110, bpc:4},
+  {t:"Fix You", a:"Coldplay", c:"Eb Bb Fm Ab", bpm:138, bpc:4},
+
+  // Børnesange og julesange
+  {t:"Højt fra træets grønne top", a:"Trad. julesang", c:"C F G C", bpm:96, bpc:2},
+  {t:"Nu er det jul igen", a:"Trad. julesang", c:"F C7 F Bb F C7 F", bpm:104, bpc:2},
+  {t:"Glade jul, dejlige jul", a:"Trad. julesang", c:"C F C G7 C", bpm:66, bpc:4},
+  {t:"Det kimer nu til julefest", a:"Trad. julesang", c:"F C7 F Bb F", bpm:88, bpc:2},
+  {t:"Mariehønen Evigglad", a:"Trad. børnesang", c:"C G7 C F C G7 C", bpm:112, bpc:2},
+  {t:"Jeg gik mig over sø og land", a:"Trad. børnesang", c:"C F G C", bpm:100, bpc:2},
+  {t:"Se, hvor nu Jesus træder", a:"Trad. salme", c:"C F G C", bpm:80, bpc:4},
+  {t:"En rose så jeg skyde", a:"Trad. julesalme", c:"Em Am D G C Am B7 Em", bpm:72, bpc:4},
+  {t:"Musevisen", a:"Trad. børnesang", c:"C G7 C F G7 C", bpm:110, bpc:2},
+  {t:"I den lange lange gæsseflok", a:"Trad. børnesang", c:"C F C G C", bpm:96, bpc:2},
+  {t:"Alle mine ænder", a:"Trad. børnesang", c:"C G7 C F C G7 C", bpm:104, bpc:2},
+  {t:"Sne, sne, hvide sne", a:"Trad. børnesang", c:"F Bb C7 F", bpm:118, bpc:2},
+  {t:"Nu falmer skoven trindt om land", a:"Trad. efterårssang", c:"F Bb C7 F", bpm:84, bpc:4},
+  {t:"Barn Jesus i en krybbe lå", a:"Trad. julesalme", c:"C G Am F C G C", bpm:78, bpc:4},
+  {t:"Jingle Bells", a:"Trad. julesang", c:"C F C G7 C", bpm:132, bpc:2},
+  {t:"Glade jul (Silent Night)", a:"Trad. julesalme", c:"C F C G7 C", bpm:64, bpc:4},
+  {t:"Deck the Halls", a:"Trad. julesang", c:"F C7 F Bb F C7 F", bpm:126, bpc:2},
+  {t:"Rudolf med den røde tud", a:"Trad. julesang", c:"C G Am F C G7 C", bpm:120, bpc:2},
+  {t:"O Tannenbaum", a:"Trad. julesang", c:"C F G C", bpm:90, bpc:4},
+  {t:"Vi gynger med barnevogn", a:"Trad. børnesang", c:"C F G C", bpm:108, bpc:2},
+  {t:"Ro, ro til fiskeskær", a:"Trad. børnesang", c:"C F C G C", bpm:92, bpc:4},
+  {t:"Fødselsdagssang (I dag er det Nn's fødselsdag)", a:"Trad. børnesang", c:"C F G7 C", bpm:112, bpc:2},
+
+  // Salmer og traditionelle
+  {t:"Dejlig er jorden", a:"Trad. salme", c:"D A D G A D", bpm:76, bpc:4},
+  {t:"Den blå anemone", a:"Trad. sang", c:"D G A D", bpm:88, bpc:4},
+  {t:"Den signede dag", a:"Trad. salme", c:"C F G C", bpm:70, bpc:4},
+  {t:"Nu titte til hinanden", a:"Trad. børnesalme", c:"C F G C", bpm:100, bpc:2},
+  {t:"I østen stiger solen op", a:"Trad. salme", c:"D G A D", bpm:74, bpc:4},
+  {t:"Blomstre som en rosengård", a:"Trad. salme", c:"C F G C", bpm:82, bpc:4},
+  {t:"Der er et yndigt land", a:"Nationalsang", c:"D A D G A D", bpm:88, bpc:4},
+  {t:"Kong Christian stod ved højen mast", a:"Nationalsang", c:"C F G C", bpm:80, bpc:4},
+  {t:"Danmark, nu blunder den lyse nat", a:"Trad. sang", c:"D G A D", bpm:78, bpc:4},
+  {t:"Det er så yndigt at følges ad", a:"Trad. sang", c:"D A D G", bpm:96, bpc:2},
+  {t:"Se, nu stiger solen", a:"Trad. salme", c:"D G A D", bpm:100, bpc:2},
+  {t:"Jeg ved en lærkerede", a:"Trad. salme", c:"C F G C", bpm:92, bpc:2},
+  {t:"Nu blomstertiden kommer", a:"Trad. salme", c:"D G A D", bpm:86, bpc:4},
+  {t:"Op al den ting som Gud har gjort", a:"Trad. salme", c:"C F G C", bpm:110, bpc:2},
+  {t:"Julen har bragt velsignet bud", a:"Trad. julesalme", c:"F Bb C7 F", bpm:72, bpc:4},
+  {t:"Dejlig er den himmel blå", a:"Trad. julesalme", c:"D G A D", bpm:68, bpc:4},
+  {t:"Velkommen igen, Guds engle små", a:"Trad. julesalme", c:"C F G C", bpm:76, bpc:4},
+  {t:"Den blomstertid nu kommer", a:"Trad. salme", c:"D G A D", bpm:84, bpc:4},
+  {t:"Måne du, som ej begiver", a:"Trad. salme", c:"C F G C", bpm:70, bpc:4},
+  {t:"Lysets engel går med glans", a:"Trad. julesalme", c:"D G A D", bpm:74, bpc:4},
+];
+
 /* ---------- state ---------- */
 let hand="R", mode="auto", bpc=4, song=[], active=0, chain=[];
 const $=id=>document.getElementById(id);
@@ -500,6 +630,114 @@ $("copybtn").onclick=()=>{
   writeURL();
   const t=$("copybtn").textContent;
   navigator.clipboard.writeText(location.href).then(()=>{ $("copybtn").textContent="✓ Kopieret"; setTimeout(()=>$("copybtn").textContent=t,1500); });
+};
+
+/* ---------- sangsøgning ---------- */
+const MY_SONGS_KEY = "klaver-akkorder:mine-sange";
+function loadMySongs(){
+  try{ const raw=localStorage.getItem(MY_SONGS_KEY); const list=raw?JSON.parse(raw):[]; return Array.isArray(list)?list:[]; }
+  catch(e){ return []; }
+}
+function saveMySongs(list){
+  try{ localStorage.setItem(MY_SONGS_KEY, JSON.stringify(list)); }
+  catch(e){ /* localStorage utilgængelig (privat tilstand e.l.) — springes stille over */ }
+}
+function normalizeText(s){
+  return s.toLowerCase()
+    .replace(/æ/g,"ae").replace(/ø/g,"o").replace(/å/g,"a")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+function allSongs(){
+  return [...SONGS, ...loadMySongs().map(s=>({...s, mine:true}))];
+}
+function searchSongs(q){
+  const nq=normalizeText(q.trim());
+  if(!nq) return [];
+  return allSongs().filter(s=> normalizeText(s.t).includes(nq) || normalizeText(s.a).includes(nq)).slice(0,8);
+}
+
+const songSearchEl=$("songsearch"), songResultsEl=$("songresults");
+let songResultsList=[], songResultsIdx=-1;
+
+function showSongResults(on){
+  songResultsEl.hidden=!on;
+  songSearchEl.setAttribute("aria-expanded", on?"true":"false");
+  if(!on) songSearchEl.removeAttribute("aria-activedescendant");
+}
+function highlightResult(i){
+  const items=songResultsEl.querySelectorAll("li[role=option]");
+  items.forEach((el,k)=>{ const on=k===i; el.classList.toggle("active",on); el.setAttribute("aria-selected",on?"true":"false"); });
+  songResultsIdx=i;
+  if(i>=0) songSearchEl.setAttribute("aria-activedescendant","songopt-"+i);
+  else songSearchEl.removeAttribute("aria-activedescendant");
+  if(items[i] && items[i].scrollIntoView) items[i].scrollIntoView({block:"nearest"});
+}
+function renderSongResults(list){
+  songResultsList=list; songResultsIdx=-1;
+  songResultsEl.innerHTML="";
+  if(!list.length){
+    if(songSearchEl.value.trim()){
+      const li=document.createElement("li"); li.className="sr-empty"; li.textContent="Ingen sange fundet";
+      songResultsEl.appendChild(li); showSongResults(true);
+    } else showSongResults(false);
+    return;
+  }
+  list.forEach((s,i)=>{
+    const li=document.createElement("li");
+    li.setAttribute("role","option"); li.id="songopt-"+i; li.setAttribute("aria-selected","false");
+    const main=document.createElement("div"); main.className="sr-main";
+    main.innerHTML=`<div class="sr-t"></div><div class="sr-a"></div>`;
+    main.querySelector(".sr-t").textContent=s.t;
+    main.querySelector(".sr-a").textContent=s.a;
+    li.appendChild(main);
+    if(s.mine){
+      const badge=document.createElement("span"); badge.className="sr-badge"; badge.textContent="★ Min";
+      li.appendChild(badge);
+      const del=document.createElement("button"); del.type="button"; del.className="sr-del";
+      del.setAttribute("aria-label","Slet "+s.t); del.textContent="×";
+      del.addEventListener("click",(e)=>{ e.stopPropagation(); deleteMySong(s.t); });
+      li.appendChild(del);
+    }
+    li.addEventListener("mousedown",e=>e.preventDefault());
+    li.addEventListener("click",()=> chooseSong(s));
+    songResultsEl.appendChild(li);
+  });
+  showSongResults(true);
+}
+function chooseSong(s){
+  $("inp").value=s.c;
+  parseInput();
+  if(s.bpm){ $("bpm").value=s.bpm; $("bpmval").textContent=s.bpm; }
+  if(s.bpc){ bpc=s.bpc; setSeg("#bpcseg","b",String(s.bpc)); }
+  writeURL();
+  songSearchEl.value=s.t;
+  showSongResults(false);
+}
+function deleteMySong(title){
+  saveMySongs(loadMySongs().filter(s=>s.t!==title));
+  renderSongResults(searchSongs(songSearchEl.value));
+  songSearchEl.focus();
+}
+songSearchEl.addEventListener("input", ()=> renderSongResults(searchSongs(songSearchEl.value)));
+songSearchEl.addEventListener("focus", ()=>{ if(songSearchEl.value.trim()) renderSongResults(searchSongs(songSearchEl.value)); });
+songSearchEl.addEventListener("keydown",(e)=>{
+  const items=songResultsEl.querySelectorAll("li[role=option]");
+  if(e.key==="ArrowDown"){ if(!items.length) return; e.preventDefault(); highlightResult(Math.min(items.length-1, songResultsIdx+1)); }
+  else if(e.key==="ArrowUp"){ if(!items.length) return; e.preventDefault(); highlightResult(Math.max(0, songResultsIdx-1)); }
+  else if(e.key==="Enter"){ if(songResultsIdx>=0 && songResultsList[songResultsIdx]){ e.preventDefault(); chooseSong(songResultsList[songResultsIdx]); } }
+  else if(e.key==="Escape"){ showSongResults(false); }
+});
+document.addEventListener("click",(e)=>{ if(e.target!==songSearchEl && !e.target.closest("#songresults")) showSongResults(false); });
+$("savesong").onclick=()=>{
+  const c=$("inp").value.trim();
+  if(!c){ alert("Skriv nogle akkorder først."); return; }
+  const title=prompt("Gem sang som:");
+  if(!title || !title.trim()) return;
+  const t=title.trim();
+  const list=loadMySongs().filter(s=>s.t!==t);
+  list.push({t, a:"Min sang", c, bpm:+$("bpm").value, bpc});
+  saveMySongs(list);
+  songSearchEl.value=t;
 };
 
 /* ---------- afspilning, tempo, metronom, lyd ---------- */
