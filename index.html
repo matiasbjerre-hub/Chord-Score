@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Klaver-akkorder · fingersætning</title>
+<title>Chord Score · fingersætning</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --txt:#e7eaf0; --muted:#aab3c2;
@@ -115,7 +115,7 @@
 </head>
 <body>
 
-<h1>🎹 Klaver-akkorder</h1>
+<h1>🎹 Chord Score</h1>
 <p class="sub">Skriv akkorderne til sangen, se dem på klaviatur eller guitarhals, og find den bedste fingersætning.</p>
 
 <div class="card">
@@ -207,7 +207,7 @@
 </div>
 
 <div id="printsheet">
-  <h2 id="printtitle">Klaver-akkorder</h2>
+  <h2 id="printtitle">Chord Score</h2>
   <div id="printgrid"></div>
 </div>
 
@@ -766,7 +766,7 @@ function suggestNext(){
 /* ---------- print ---------- */
 function renderPrintSheet(){
   const g=$("printgrid"); g.innerHTML="";
-  const label = instrument==="guitar" ? "Guitar-becifring" : "Klaver-akkorder";
+  const label = instrument==="guitar" ? "Guitar-becifring" : "Chord Score";
   $("printtitle").textContent = label+" — " + song.filter(c=>!c.error).map(chName).join("  ");
   song.forEach((item,i)=>{
     const cell=document.createElement("div"); cell.className="pc";
