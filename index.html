@@ -36,6 +36,9 @@
   #songresults[hidden]{display:none}
   #songresults li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer}
   #songresults li.sr-empty{cursor:default;color:var(--muted);font-size:13px}
+  #songresults li.sr-ai{color:var(--muted);font-size:13px;font-style:italic}
+  #songresults li.sr-ai .sr-main{font-style:normal}
+  #songresults li.sr-ai .sr-t{color:var(--gold)}
   #songresults li.active,#songresults li:hover{background:#1c2230}
   #songresults .sr-main{flex:1;min-width:0}
   #songresults .sr-t{font-size:14px;color:var(--txt)}
@@ -873,9 +876,14 @@ function renderSongResults(list){
   songResultsList=list; songResultsIdx=-1;
   songResultsEl.innerHTML="";
   if(!list.length){
-    if(songSearchEl.value.trim()){
-      const li=document.createElement("li"); li.className="sr-empty"; li.textContent="Ingen sange fundet";
-      songResultsEl.appendChild(li); showSongResults(true);
+    const q=songSearchEl.value.trim();
+    if(q){
+      const li=document.createElement("li"); li.className="sr-empty"; li.textContent="Ingen sange fundet i kataloget.";
+      songResultsEl.appendChild(li);
+      const ai=document.createElement("li"); ai.className="sr-ai"; ai.id="ai-status";
+      songResultsEl.appendChild(ai);
+      showSongResults(true);
+      scheduleAiSearch(q);
     } else showSongResults(false);
     return;
   }
@@ -936,6 +944,54 @@ $("savesong").onclick=()=>{
   saveMySongs(list);
   songSearchEl.value=t;
 };
+
+/* ---------- AI-sangsøgning (fallback når kataloget ikke finder noget) ---------- */
+let aiSearchTimer=null, aiSearchSeq=0;
+function scheduleAiSearch(q){
+  clearTimeout(aiSearchTimer);
+  aiSearchTimer=setTimeout(()=>runAiSearch(q), 700);
+}
+function showAiStatus(text){
+  const el=document.getElementById("ai-status");
+  if(el) el.textContent=text;
+}
+function showAiResult(song){
+  const el=document.getElementById("ai-status");
+  if(!el) return;
+  el.id=""; el.innerHTML=""; el.setAttribute("role","option");
+  const main=document.createElement("div"); main.className="sr-main";
+  main.innerHTML=`<div class="sr-t"></div><div class="sr-a"></div>`;
+  main.querySelector(".sr-t").textContent="✨ "+song.t;
+  main.querySelector(".sr-a").textContent=song.a+" · fundet af AI";
+  el.appendChild(main);
+  el.addEventListener("mousedown",e=>e.preventDefault());
+  el.addEventListener("click",()=>chooseSong(song));
+  songResultsList=[song]; songResultsIdx=0;
+  el.classList.add("active"); el.setAttribute("aria-selected","true");
+}
+async function runAiSearch(q){
+  const seq=++aiSearchSeq;
+  if(songSearchEl.value.trim()!==q) return;
+  showAiStatus("🔎 Spørger AI om sangen …");
+  try{
+    const resp=await fetch("/api/chords",{
+      method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify({title:q}),
+    });
+    if(seq!==aiSearchSeq || songSearchEl.value.trim()!==q) return; // forespørgslen er forældet
+    if(!resp.ok){ showAiStatus("AI-opslag fejlede — prøv igen om lidt."); return; }
+    const data=await resp.json();
+    if(!data.found || !String(data.c||"").trim()){ showAiStatus("AI kunne ikke finde akkorder til denne sang."); return; }
+    const bpc=[1,2,4].includes(+data.bpc)?+data.bpc:4;
+    const song={t:data.t||q, a:data.a||"Fundet af AI", c:data.c, bpm:(+data.bpm||90), bpc};
+    showAiResult(song);
+    const list=loadMySongs().filter(s=>s.t!==song.t);
+    list.push({t:song.t, a:song.a, c:song.c, bpm:song.bpm, bpc:song.bpc});
+    saveMySongs(list); // cachet lokalt, så samme sang ikke koster et nyt AI-opslag
+  } catch(e){
+    if(seq===aiSearchSeq) showAiStatus("Kunne ikke kontakte AI-søgningen.");
+  }
+}
 
 /* ---------- afspilning, tempo, metronom, lyd ---------- */
 let audioCtx=null, playing=false, curBeat=0, nextTime=0, timer=null;
