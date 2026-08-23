@@ -76,6 +76,12 @@
 
   /* mini-klaviaturer (hele sangen) */
   #minis{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .section-head{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--accent);margin-top:8px;padding-top:10px;border-top:1px solid var(--line)}
+  .section-head:first-child{margin-top:0;padding-top:0;border-top:none}
+  .secbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--accent);background:#11141a;border:1px solid var(--line);border-radius:6px;padding:2px 8px;
+    vertical-align:middle}
   .mini{background:#11141a;border:1px solid var(--line);border-radius:10px;padding:9px 9px 7px;
     cursor:pointer;text-align:center;color:var(--txt);transition:transform .12s,border-color .12s;
     font-family:inherit}
@@ -105,6 +111,9 @@
     #printsheet h2{font-size:13px;margin:0 0 6px}
     /* 5 kolonner × 6 rækker = 30 akkorder pr. side */
     #printgrid{display:grid;gap:5px;grid-template-columns:repeat(5,1fr)}
+    .pc-head{grid-column:1/-1;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.03em;
+      margin:6px 0 1px;padding-top:4px;border-top:1px solid #999}
+    .pc-head:first-child{margin-top:0;padding-top:0;border-top:none}
     .pc{border:1px solid #bbb;border-radius:5px;padding:4px 3px;break-inside:avoid;text-align:center}
     .pc .pcn{font-weight:700;font-size:11px;margin-bottom:2px;line-height:1.2}
     .pc .pct{font-size:9px;margin-top:2px;line-height:1.2}
@@ -129,13 +138,13 @@
     <button id="savesong" class="btn" style="flex:0 0 auto">💾 Gem som sang</button>
   </div>
 
-  <label for="inp">Akkorder (adskilt af mellemrum eller komma)</label>
-  <input id="inp" type="text" placeholder="fx  C  Am  F  G7  Dm7  Cmaj7  E/G#" value="C Am F G7">
+  <label for="inp">Akkorder (adskilt af mellemrum eller komma · afsnit med [Vers], [Omkvæd] osv.)</label>
+  <input id="inp" type="text" placeholder="fx  [Vers] C Am F G  [Omkvæd] F G C Am" value="C Am F G7">
   <div class="row" style="margin-top:12px;gap:10px">
     <button id="copybtn" class="btn">🔗 Kopiér link</button>
     <button id="printbtn" class="btn">🖨 Print / gem som PDF</button>
     <div style="flex:1"></div>
-    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>9</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> · bas: <kbd>C/E</kbd></div>
+    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>9</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
   </div>
 </div>
 
@@ -630,7 +639,8 @@ function setActive(i){
     det.innerHTML=""; big.innerHTML=""; markMini(i); return;
   }
   const v=getV(i);
-  nameEl.textContent = item.rootName + item.qname + (item.bassPC!=null? " / bas "+NOTES[item.bassPC]:"");
+  nameEl.innerHTML = (item.section?`<span class="secbadge">${item.section}</span> `:"")
+    + (item.rootName + item.qname + (item.bassPC!=null? " / bas "+NOTES[item.bassPC]:""));
   if(instrument==="guitar"){
     big.setAttribute("aria-label","Guitargreb med den aktuelle akkord");
     big.innerHTML = drawGtr(v,{W:420,H:260});
@@ -657,17 +667,27 @@ function setActive(i){
   markMini(i);
 }
 function markMini(i){
-  const el=$("minis").children;
-  for(let k=0;k<el.length;k++) if(el[k].classList) el[k].classList.toggle("active", k===i);
-  if(el[i] && el[i].scrollIntoView) el[i].scrollIntoView({block:"nearest",inline:"nearest"});
+  const btns=$("minis").querySelectorAll(".mini");
+  btns.forEach(b=>{
+    const on=(+b.dataset.idx===i);
+    b.classList.toggle("active",on);
+    if(on && b.scrollIntoView) b.scrollIntoView({block:"nearest",inline:"nearest"});
+  });
 }
 function renderMinis(){
   const wrap=$("minis");
   if(!song.length){ wrap.innerHTML='<span class="empty">Skriv nogle akkorder herover…</span>'; return; }
   wrap.innerHTML="";
+  let lastSection=null;
   song.forEach((item,i)=>{
+    if(item.section && item.section!==lastSection){
+      const h=document.createElement("div"); h.className="section-head"; h.textContent=item.section;
+      wrap.appendChild(h);
+    }
+    lastSection=item.section||null;
     const c=document.createElement("button");
     c.className="mini"+(i===active?" active":"")+(item.error?" bad":"");
+    c.dataset.idx=i;
     if(item.error){ c.innerHTML=`<div class="mn">${item.sym} ?</div><div class="mf">?</div>`; }
     else if(instrument==="guitar"){
       const v=getV(i), fng=v.fingers.filter((f,k)=>v.frets[k]>0).join("-")||"åben";
@@ -768,7 +788,13 @@ function renderPrintSheet(){
   const g=$("printgrid"); g.innerHTML="";
   const label = instrument==="guitar" ? "Guitar-becifring" : "Chord Score";
   $("printtitle").textContent = label+" — " + song.filter(c=>!c.error).map(chName).join("  ");
+  let lastSection=null;
   song.forEach((item,i)=>{
+    if(item.section && item.section!==lastSection){
+      const h=document.createElement("div"); h.className="pc-head"; h.textContent=item.section;
+      g.appendChild(h);
+    }
+    lastSection=item.section||null;
     const cell=document.createElement("div"); cell.className="pc";
     if(item.error){ cell.innerHTML=`<div class="pcn">${item.sym} ?</div>`; g.appendChild(cell); return; }
     const v=getV(i);
@@ -815,8 +841,17 @@ function refresh(){
   if(active>=song.length) active=Math.max(0,song.length-1);
   renderMinis(); suggestNext(); setActive(active); writeURL();
 }
+const TOKEN_RE=/\[[^\]]*\]|[^\s,]+/g; // afsnitsmarkører som [Vers] holdes samlet, akkorder splittes som før
 function parseInput(){
-  song = $("inp").value.split(/[\s,]+/).filter(Boolean).map(parseChord).filter(Boolean);
+  const tokens = $("inp").value.match(TOKEN_RE) || [];
+  let section = "";
+  song = [];
+  tokens.forEach(tok=>{
+    const m = tok.match(/^\[([^\]]*)\]$/);
+    if(m){ section = m[1].trim(); return; }
+    const ch = parseChord(tok);
+    if(ch){ ch.section = section; song.push(ch); }
+  });
   if(active>=song.length) active=Math.max(0,song.length-1);
   refresh();
 }
@@ -979,7 +1014,10 @@ async function runAiSearch(q){
       body:JSON.stringify({title:q}),
     });
     if(seq!==aiSearchSeq || songSearchEl.value.trim()!==q) return; // forespørgslen er forældet
-    if(!resp.ok){ showAiStatus("AI-opslag fejlede — prøv igen om lidt."); return; }
+    if(!resp.ok){
+      showAiStatus(resp.status===429? "For mange AI-opslag lige nu — vent et minut og prøv igen." : "AI-opslag fejlede — prøv igen om lidt.");
+      return;
+    }
     const data=await resp.json();
     if(!data.found || !String(data.c||"").trim()){ showAiStatus("AI kunne ikke finde akkorder til denne sang."); return; }
     const bpc=[1,2,4].includes(+data.bpc)?+data.bpc:4;
