@@ -15,6 +15,11 @@
   h1{font-size:22px;margin:0 0 4px}
   .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  @keyframes songLoaded{
+    0%{box-shadow:0 0 0 0 rgba(79,157,255,.65);border-color:var(--accent)}
+    100%{box-shadow:0 0 0 14px rgba(79,157,255,0);border-color:var(--line)}
+  }
+  .card.flash{animation:songLoaded .9s ease-out}
   label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
   input[type=text]{width:100%;background:#11141a;border:1px solid var(--line);color:var(--txt);
     border-radius:10px;padding:12px 14px;font-size:16px;outline:none}
@@ -148,7 +153,7 @@
   </div>
 </div>
 
-<div class="card">
+<div class="card" id="displaycard">
   <div class="row" style="margin-bottom:14px">
     <div style="flex:0 0 auto">
       <label>Instrument</label>
@@ -160,8 +165,8 @@
     <div style="flex:0 0 auto" id="handblock">
       <label>Fingernumre</label>
       <div class="seg" id="handseg" role="radiogroup" aria-label="Hånd">
-        <button data-hand="R" class="on" role="radio" aria-checked="true">Højre hånd</button>
         <button data-hand="L" role="radio" aria-checked="false">Venstre hånd</button>
+        <button data-hand="R" class="on" role="radio" aria-checked="true">Højre hånd</button>
       </div>
     </div>
     <div style="flex:0 0 auto">
@@ -522,7 +527,7 @@ const SONGS = [
   {t:"Om lidt", a:"Kim Larsen & Bellamy", c:"G D Em C", bpm:76, bpc:4},
   {t:"Kom herind lille du", a:"Kim Larsen", c:"D A Bm G", bpm:104, bpc:2},
   {t:"Susanne", a:"Kim Larsen", c:"D G A D", bpm:118, bpc:2},
-  {t:"Midt om natten", a:"Kim Larsen", c:"Em C G D", bpm:96, bpc:4},
+  {t:"Midt om natten", a:"Kim Larsen", c:"[Vers] Em Am Em Am [Omkvæd] G D Em Am [Bro] D G A D", bpm:90, bpc:4},
   {t:"To dråber vand", a:"Kim Larsen", c:"G C D G", bpm:100, bpc:4},
   {t:"Jutlandia", a:"Kim Larsen", c:"D Bm G A", bpm:108, bpc:2},
   {t:"Vild med dig", a:"Kim Larsen", c:"C Am F G", bpm:120, bpc:2},
@@ -944,6 +949,13 @@ function renderSongResults(list){
   });
   showSongResults(true);
 }
+function flashDisplay(){
+  const el=$("displaycard");
+  el.classList.remove("flash");
+  void el.offsetWidth; // genstart animationen selv ved gentagne valg
+  el.classList.add("flash");
+  el.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
 function chooseSong(s){
   $("inp").value=s.c;
   parseInput();
@@ -952,6 +964,7 @@ function chooseSong(s){
   writeURL();
   songSearchEl.value=s.t;
   showSongResults(false);
+  flashDisplay();
 }
 function deleteMySong(title){
   saveMySongs(loadMySongs().filter(s=>s.t!==title));
