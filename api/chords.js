@@ -17,17 +17,29 @@ const SCHEMA = {
 
 const SYSTEM = `Du finder akkordrækker til sange til et klaver/guitar-akkordværktøj.
 Svar KUN med et JSON-objekt der matcher det angivne skema.
+
+Grundprincip: "bpc" (slag pr. akkord) er hvor mange slag HVER enkelt akkord i strengen "c" repræsenterer.
+Antag 4/4-taktart (4 slag pr. takt), medmindre sangen tydeligvis har en anden taktart.
+Akkordstrengen skal være TAKTNØJAGTIG: en akkord der reelt holdes i N takter skal gentages
+N×4/bpc gange i træk — ikke forkortes til én enkelt forekomst.
+Eksempel: et vers på 8 takter der starter 2 takter C, så 2 takter Am, så 4 takter F, med bpc=4:
+  "C C Am Am F F F F" (8 akkorder = 8 takter).
+Samme vers med bpc=2 (dobbelt opløsning): "C C C C Am Am Am Am F F F F F F F F" (16 akkorder).
+Vælg "bpc" så akkordantallet pr. afsnit bliver til at overskue — foretræk 4, brug 2 ved hurtigere
+akkordskift, og kun 1 ved meget hurtige skift. Skift ikke bpc undervejs i sangen.
+
 Reglerne for akkordstrengen "c":
 - Del sangen op i afsnit med markører i firkantede parenteser før hvert afsnits akkorder, fx:
-  "[Intro] C G [Vers] Am F C G [Omkvæd] F G C Am [Bro] Dm G7"
+  "[Intro] C C G G [Vers] Am Am F F C C G G [Omkvæd] F F G G C C Am Am [Bro] Dm Dm G7 G7"
 - Brug kun de afsnit sangen faktisk har, med korte danske navne: Intro, Vers, Omkvæd, Bro, Outro
   (udelad afsnit der ikke findes, og udelad markørerne helt hvis sangen kun har ét gennemgående forløb).
-- Hvert afsnit har 2-8 akkorder adskilt af mellemrum, i den rækkefølge de typisk optræder.
+- Skriv hvert afsnit taktnøjagtigt ud ÉN gang, uanset om sangen reelt gentager afsnittet flere
+  gange (fx to vers med samme akkorder) — gentag ikke selve afsnittet i outputtet.
 - Kun disse akkordkvaliteter må bruges: ingen suffiks (dur), m, 7, maj7, m7, dim, aug, sus2, sus4, 6, 9, add9, m7b5, samt skråstregs-bastone som C/E.
 - Brug store bogstaver for grundtonen (C, D, Eb, F#, ...).
-- "bpm" er et realistisk tempo-gæt mellem 40 og 200. "bpc" er slag pr. akkord: 1, 2 eller 4.
+- "bpm" er et realistisk tempo-gæt mellem 40 og 200.
 - "t" og "a" ekko'er den angivne titel/kunstner, evt. med korrekt stavning.
-Sæt "found": false og lad de øvrige felter være tomme streng/0, hvis du ikke er rimeligt sikker på sangens akkorder. Gæt aldrig useriøst — det er bedre at sige nej.`;
+Sæt "found": false og lad de øvrige felter være tomme streng/0, hvis du ikke er rimeligt sikker på sangens akkorder eller taktopbygning. Gæt aldrig useriøst — det er bedre at sige nej.`;
 
 // Simpel, best-effort rate-limiting pr. IP (i hukommelsen — nulstilles ved kolde starter,
 // men bremser almindeligt misbrug af et offentligt, unauthenticated endpoint uden ekstern afhængighed).
@@ -85,7 +97,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5",
-        max_tokens: 400,
+        max_tokens: 2000,
         system: SYSTEM,
         messages: [{ role: "user", content: userMsg }],
         output_config: { format: { type: "json_schema", schema: SCHEMA } },
