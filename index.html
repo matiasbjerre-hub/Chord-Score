@@ -1060,7 +1060,7 @@ function beep(freq,t,dur,gain,type){
 }
 function playChordAt(idx,t){
   const v=getV(idx); if(!v) return;
-  const dur=(60/bpm())*bpc*0.97;
+  const dur=(60/bpm())*0.97;
   v.pitches.forEach((p,i)=> beep(mtof(p),t+i*0.012,dur,0.12,"triangle"));
 }
 function scheduler(){
@@ -1068,8 +1068,8 @@ function scheduler(){
   const spb=60/bpm();
   while(nextTime < ac().currentTime + 0.12){
     const beatInChord=curBeat%bpc, chordIdx=Math.floor(curBeat/bpc)%Math.max(1,song.length);
+    if($("snd").checked) playChordAt(chordIdx,nextTime);
     if(beatInChord===0){
-      if($("snd").checked) playChordAt(chordIdx,nextTime);
       visQ.push({idx:chordIdx,t:nextTime,acc:true});
     } else visQ.push({idx:-1,t:nextTime,acc:false});
     if($("met").checked){ const a=beatInChord===0; beep(a?1600:950,nextTime,0.045,a?0.28:0.16,"square"); }
