@@ -698,10 +698,10 @@ function renderMinis(){
     if(item.error){ c.innerHTML=`<div class="mn">${item.sym} ?</div><div class="mf">?</div>`; }
     else if(instrument==="guitar"){
       const v=getV(i), fng=v.fingers.filter((f,k)=>v.frets[k]>0).join("-")||"åben";
-      c.innerHTML=`<div class="mn">${i+1}. ${chName(item)}</div>${drawGtr(v,{W:150,H:110})}<div class="mf">${fng}</div>`;
+      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawGtr(v,{W:150,H:110})}<div class="mf">${fng}</div>`;
     } else{
       const v=getV(i), fng=(hand==="R"?v.rh:v.lh).join(" - ");
-      c.innerHTML=`<div class="mn">${i+1}. ${chName(item)}</div>${drawKB(v,{W:150,H:56})}<div class="mf">${fng}</div>`;
+      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawKB(v,{W:150,H:56})}<div class="mf">${fng}</div>`;
     }
     c.onclick=()=>setActive(i);
     wrap.appendChild(c);
