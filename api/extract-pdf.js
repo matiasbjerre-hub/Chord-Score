@@ -40,11 +40,16 @@ Reglerne for akkordstrengen "c" (samme format som resten af værktøjet):
 Feltet "form" er sangens fulde forløb: en liste af afsnitsnavne i den rækkefølge dokumentet viser dem,
 inkl. gentagelser. Tomt [] hvis dokumentet kun har ét gennemgående forløb uden afsnit.
 
-Feltet "lyrics" skal have PRÆCIS samme antal elementer som antal akkorder i "c" (tæl akkord-tokens,
-ikke afsnitsmarkører). For hvert akkord-token: sæt det tekststykke (typisk nogle få ord/stavelser) der
-står ud for/over den akkord i dokumentet. Brug tom streng "" hvis akkorden ikke har nogen tekst ud for
-sig (fx en instrumental intro/outro-akkord). TRANSSKRIBÉR TEKSTEN PRÆCIS SOM DEN STÅR I DOKUMENTET —
-opfind, ret eller udvid ALDRIG tekst der ikke allerede findes i det uploadede dokument.
+Feltet "lyrics" skal have PRÆCIS ét element for hvert akkord-token i "c", i samme rækkefølge (tæl
+akkord-tokens, ikke afsnitsmarkører — dette er en hård regel, tjek antallet før du svarer).
+For hvert akkord-token: saml ALT tekst der hører til den akkord (til næste akkord starter) i ÉT
+element — flere ord/stavelser under samme akkord bliver ét element, ikke ét element pr. ord.
+Brug tom streng "" hvis akkorden ikke har nogen tekst ud for sig (fx en instrumental intro/outro-akkord).
+Eksempel: hvis "c" er "C G Am F" og dokumentet viser ordene "Her går" under C, "vi nu" under G, intet
+under Am, og "sammen" under F, skal "lyrics" være ["Her går","vi nu","","sammen"] — fire elementer,
+ét pr. akkord, aldrig flere eller færre.
+TRANSSKRIBÉR TEKSTEN PRÆCIS SOM DEN STÅR I DOKUMENTET — opfind, ret eller udvid ALDRIG tekst der ikke
+allerede findes i det uploadede dokument.
 
 - "bpm" er et realistisk tempo-gæt ud fra dokumentet (evt. eksplicit angivet), ellers 40-200.
 - "t" og "a" er titel/kunstner hvis dokumentet angiver dem, ellers tomme strenge.
