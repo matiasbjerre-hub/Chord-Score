@@ -158,7 +158,7 @@
       <button id="transup" class="btn" type="button" aria-label="Transponér op en halvtone">+1</button>
     </div>
     <div style="flex:1"></div>
-    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>9</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
+    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>6/9</kbd> <kbd>9</kbd> <kbd>11</kbd> <kbd>13</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> <kbd>7sus4</kbd> <kbd>7b9</kbd> <kbd>7#9</kbd> <kbd>7#11</kbd> m.fl. · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
   </div>
 </div>
 
@@ -266,13 +266,22 @@ const QUAL = {
   "aug":{name:"aug",iv:[0,4,8]}, "+":{name:"aug",iv:[0,4,8]},
   "sus2":{name:"sus2",iv:[0,2,7]}, "sus4":{name:"sus4",iv:[0,5,7]}, "sus":{name:"sus4",iv:[0,5,7]},
   "6":{name:"6",iv:[0,4,7,9]}, "m6":{name:"m6",iv:[0,3,7,9]},
+  "6/9":{name:"6/9",iv:[0,4,7,9,14]}, "69":{name:"6/9",iv:[0,4,7,9,14]},
+  "m6/9":{name:"m6/9",iv:[0,3,7,9,14]}, "m69":{name:"m6/9",iv:[0,3,7,9,14]},
   "7":{name:"7",iv:[0,4,7,10]}, "maj7":{name:"maj7",iv:[0,4,7,11]}, "M7":{name:"maj7",iv:[0,4,7,11]},
   "m7":{name:"m7",iv:[0,3,7,10]}, "min7":{name:"m7",iv:[0,3,7,10]},
   "m7b5":{name:"m7b5",iv:[0,3,6,10]}, "ø":{name:"m7b5",iv:[0,3,6,10]},
   "dim7":{name:"dim7",iv:[0,3,6,9]}, "°7":{name:"dim7",iv:[0,3,6,9]},
-  "7sus4":{name:"7sus4",iv:[0,5,7,10]},
+  "7sus4":{name:"7sus4",iv:[0,5,7,10]}, "9sus4":{name:"9sus4",iv:[0,5,7,10,14]},
+  "7b5":{name:"7b5",iv:[0,4,6,10]}, "7#5":{name:"7#5",iv:[0,4,8,10]},
+  "7b9":{name:"7b9",iv:[0,4,7,10,13]}, "7#9":{name:"7#9",iv:[0,4,7,10,15]}, "7#11":{name:"7#11",iv:[0,4,7,10,18]},
+  "maj7#5":{name:"maj7#5",iv:[0,4,8,11]}, "maj7b5":{name:"maj7b5",iv:[0,4,6,11]},
+  "m7#5":{name:"m7#5",iv:[0,3,8,10]},
   "add9":{name:"add9",iv:[0,4,7,14]}, "madd9":{name:"madd9",iv:[0,3,7,14]},
+  "add11":{name:"add11",iv:[0,4,7,17]}, "add13":{name:"add13",iv:[0,4,7,21]}, "madd11":{name:"madd11",iv:[0,3,7,17]},
   "9":{name:"9",iv:[0,4,7,10,14]}, "maj9":{name:"maj9",iv:[0,4,7,11,14]}, "m9":{name:"m9",iv:[0,3,7,10,14]},
+  "11":{name:"11",iv:[0,4,7,10,14,17]}, "maj11":{name:"maj11",iv:[0,4,7,11,14,17]}, "m11":{name:"m11",iv:[0,3,7,10,14,17]},
+  "13":{name:"13",iv:[0,4,7,10,14,21]}, "maj13":{name:"maj13",iv:[0,4,7,11,14,21]}, "m13":{name:"m13",iv:[0,3,7,10,14,21]},
 };
 const QUAL_KEYS = Object.keys(QUAL).filter(k=>k).sort((a,b)=>b.length-a.length);
 
@@ -584,9 +593,9 @@ const SONGS = [
   {t:"Hey Jude", a:"The Beatles", c:"[Intro] F F F F [Vers] F F C C F F F F [Omkvæd] C C F F C C F F [Bro] Dm Dm G G C C F F [Outro] F F F F", bpm:140, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
   {t:"Here Comes the Sun", a:"The Beatles", c:"[Intro] A A A A [Vers] A A A A E E A A A A A A E E A A [Omkvæd] D D A A D D A A [Bro] F#m F#m D D A A [Outro] A A A A", bpm:129, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Vers","Omkvæd","Outro"]},
   {t:"Yesterday", a:"The Beatles", c:"[Intro] F [Vers] F Dm Bb F [Omkvæd] C Dm Bb F C Dm Bb F", bpm:44, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
-  {t:"Blackbird", a:"The Beatles", c:"[Intro] G Bm7 [Vers] G Bm7 G Bm7 G Bm7 G Bm7 [Omkvæd] G Bm7 G Bm7 G Bm7 G Bm7 [Outro] G Bm7 G", bpm:120, bpc:4},
+  {t:"Blackbird", a:"The Beatles", c:"[Intro] G G [Vers] G Am7 D7sus4 G G Am7 D7sus4 [Omkvæd] G G C Cm G Em Am7 D7sus4 [Outro] G", bpm:120, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Outro"]},
   {t:"Imagine", a:"John Lennon", c:"[Intro] C Cmaj7 C Cmaj7 [Vers] C Cmaj7 C Cmaj7 F F C Cmaj7 [Omkvæd] F G C G Am F C G [Outro] C Cmaj7 C Cmaj7", bpm:76, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
-  {t:"Wonderwall", a:"Oasis", c:"Em7 G D C", bpm:87, bpc:4},
+  {t:"Wonderwall", a:"Oasis", c:"[Intro] Em7 A7sus4 Em7 A7sus4 [Vers] Em7 A7sus4 Em7 A7sus4 Em7 A7sus4 Em7 A7sus4 [Omkvæd] Dsus2 A7sus4 Dsus2 A7sus4 Dsus2 A7sus4 Dsus2 A7sus4 [Bro] Cadd9 Cadd9 Cadd9 Cadd9", bpm:87, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
   {t:"Don't Look Back in Anger", a:"Oasis", c:"[Intro] C C C C [Vers] C C C C F F C C C C C C F F C C [Omkvæd] F F F F C C C C F F F F C C C C [Bro] Dm Dm Dm Dm G G G G Dm Dm Dm Dm G G G G [Outro] C C C C", bpm:86, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
   {t:"Perfect", a:"Ed Sheeran", c:"[Intro] G Bm7 Am7 D [Vers] G Bm7 Am7 D G Bm7 Am7 D [Omkvæd] Cmaj7 D G G Cmaj7 D A A [Bro] F#m B Em A D A Bm E [Outro] G Bm7 Am7 D", bpm:76, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
   {t:"Thinking Out Loud", a:"Ed Sheeran", c:"[Intro] D D D D [Vers] D D D D G G A A D D D D G G A A [Omkvæd] D D D D G G A A D D D D G G A A [Bro] F#m F#m F#m F#m G G G G A A A A [Outro] D D D D G G A A D D D D", bpm:64, bpc:4, form:["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]},
