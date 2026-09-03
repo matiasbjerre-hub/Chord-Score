@@ -102,6 +102,7 @@
   .mini.bad{border-color:#5a2b2b}
   .mini .mn{font-size:14px;font-weight:700;margin-bottom:6px}
   .mini .mf{font-size:11px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums}
+  .mini .lyr{font-size:11px;color:var(--gold);font-style:italic;margin-top:4px;white-space:normal;line-height:1.3}
   .mini svg{display:block}
 
   /* forslag / chips */
@@ -147,8 +148,11 @@
         aria-autocomplete="list" autocomplete="off" placeholder="fx Papirsklip, Let It Be, Nu er det jul igen">
       <ul id="songresults" class="songresults" role="listbox" aria-label="Sangresultater" hidden></ul>
     </div>
+    <button id="uploadpdfbtn" class="btn" style="flex:0 0 auto">📄 Upload PDF</button>
+    <input id="pdffile" type="file" accept="application/pdf" style="display:none">
     <button id="savesong" class="btn" style="flex:0 0 auto">💾 Gem som sang</button>
   </div>
+  <div id="pdfstatus" class="hint" style="margin:-10px 0 12px"></div>
 
   <label for="inp">Akkorder (adskilt af mellemrum eller komma · afsnit med [Vers], [Omkvæd] osv.)</label>
   <input id="inp" type="text" placeholder="fx  [Vers] C Am F G  [Omkvæd] F G C Am" value="C Am F G7">
@@ -667,7 +671,7 @@ const SONGS = [
 
 /* ---------- state ---------- */
 let hand="R", mode="auto", bpc=4, song=[], active=0, chain=[], instrument="piano";
-let baseChordInput=null, songForm=null, fullFormOn=false;
+let baseChordInput=null, songForm=null, fullFormOn=false, songLyrics=null;
 const $=id=>document.getElementById(id);
 function chName(item){ return item.rootName+item.qname+(item.bassPC!=null?"/"+NOTES[item.bassPC]:""); }
 function getV(idx){
@@ -756,6 +760,9 @@ function markMini(i){
     if(on && b.scrollIntoView) b.scrollIntoView({block:"nearest",inline:"nearest"});
   });
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 function renderMinis(){
   const wrap=$("minis");
   if(!song.length){ wrap.innerHTML='<span class="empty">Skriv nogle akkorder herover…</span>'; return; }
@@ -775,13 +782,14 @@ function renderMinis(){
     const c=document.createElement("button");
     c.className="mini"+(i===active?" active":"")+(item.error?" bad":"");
     c.dataset.idx=i;
+    const lyr = (songLyrics && !fullFormOn && songLyrics[i]) ? `<div class="lyr">${escapeHtml(songLyrics[i])}</div>` : "";
     if(item.error){ c.innerHTML=`<div class="mn">${item.sym} ?</div><div class="mf">?</div>`; }
     else if(instrument==="guitar"){
       const v=getV(i), fng=v.fingers.filter((f,k)=>v.frets[k]>0).join("-")||"åben";
-      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawGtr(v,{W:150,H:110})}<div class="mf">${fng}</div>`;
+      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawGtr(v,{W:150,H:110})}<div class="mf">${fng}</div>${lyr}`;
     } else{
       const v=getV(i), fng=(hand==="R"?v.rh:v.lh).join(" - ");
-      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawKB(v,{W:150,H:56})}<div class="mf">${fng}</div>`;
+      c.innerHTML=`<div class="mn">${chName(item)}</div>${drawKB(v,{W:150,H:56})}<div class="mf">${fng}</div>${lyr}`;
     }
     c.onclick=()=>setActive(i);
     wrap.appendChild(c);
@@ -961,7 +969,7 @@ function parseInput(){
   refresh();
 }
 $("inp").addEventListener("input", ()=>{
-  baseChordInput=$("inp").value; songForm=null; fullFormOn=false;
+  baseChordInput=$("inp").value; songForm=null; fullFormOn=false; songLyrics=null;
   updateFormSegAvailability(); setSeg("#formseg","form","once");
   parseInput();
 });
@@ -1159,6 +1167,7 @@ function applyFormMode(){
 function chooseSong(s){
   baseChordInput=s.c;
   songForm=Array.isArray(s.form)&&s.form.length? s.form : null;
+  songLyrics=null; // katalog/AI-søgning bærer aldrig sangtekst — kun PDF-upload gør
   setSeg("#formseg","form", fullFormOn&&songForm? "full":"once");
   applyFormMode();
   if(s.bpm){ $("bpm").value=s.bpm; $("bpmval").textContent=s.bpm; }
@@ -1168,6 +1177,52 @@ function chooseSong(s){
   showSongResults(false);
   flashDisplay();
 }
+function loadUploadedSong(data){
+  fullFormOn=false; setSeg("#formseg","form","once");
+  baseChordInput=data.c;
+  songForm=Array.isArray(data.form)&&data.form.length? data.form : null;
+  songLyrics=Array.isArray(data.lyrics)? data.lyrics : null;
+  applyFormMode();
+  if(data.bpm){ $("bpm").value=data.bpm; $("bpmval").textContent=data.bpm; }
+  const bpcVal=[1,2,4].includes(+data.bpc)?+data.bpc:4;
+  bpc=bpcVal; setSeg("#bpcseg","b",String(bpcVal));
+  refresh(); writeURL();
+  if(data.t) songSearchEl.value=data.t;
+  flashDisplay();
+}
+function readFileAsBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>{ const s=String(r.result); resolve(s.slice(s.indexOf(",")+1)); };
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+$("uploadpdfbtn").onclick=()=> $("pdffile").click();
+$("pdffile").addEventListener("change", async ()=>{
+  const file=$("pdffile").files[0];
+  $("pdffile").value="";
+  if(!file) return;
+  if(file.size>5_000_000){ $("pdfstatus").textContent="PDF'en er for stor (maks ca. 5 MB)."; return; }
+  $("pdfstatus").textContent="🔎 Læser PDF …";
+  try{
+    const b64=await readFileAsBase64(file);
+    const resp=await fetch("/api/extract-pdf",{
+      method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify({pdf:b64}),
+    });
+    if(!resp.ok){
+      $("pdfstatus").textContent = resp.status===429? "For mange PDF-opslag lige nu — vent et minut og prøv igen." : "Kunne ikke læse PDF'en — prøv igen om lidt.";
+      return;
+    }
+    const data=await resp.json();
+    if(!data.found || !String(data.c||"").trim()){ $("pdfstatus").textContent="Kunne ikke genkende akkorder i den PDF."; return; }
+    loadUploadedSong(data);
+    $("pdfstatus").textContent = "✓ Indlæst fra PDF"+(data.lyrics&&data.lyrics.some(x=>x)? " (med sangtekst)":"");
+  } catch(e){
+    $("pdfstatus").textContent="Kunne ikke læse PDF'en.";
+  }
+});
 function deleteMySong(title){
   saveMySongs(loadMySongs().filter(s=>s.t!==title));
   renderSongResults(searchSongs(songSearchEl.value));
