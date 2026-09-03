@@ -15,6 +15,9 @@
   h1{font-size:22px;margin:0 0 4px}
   .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  .card.fullform{border-color:var(--accent);background:linear-gradient(180deg,rgba(79,157,255,.10),rgba(79,157,255,0) 120px),var(--panel)}
+  #viewstatus{font-weight:600}
+  #viewstatus.full{color:var(--accent)}
   @keyframes songLoaded{
     0%{box-shadow:0 0 0 0 rgba(79,157,255,.65);border-color:var(--accent)}
     100%{box-shadow:0 0 0 14px rgba(79,157,255,0);border-color:var(--line)}
@@ -223,7 +226,7 @@
   </div>
 </div>
 
-<div class="card">
+<div class="card" id="songcard">
   <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:10px">
     <label style="margin:0">Sangen — klik på en akkord for at forstørre den ovenfor</label>
     <div style="flex:0 0 auto">
@@ -234,6 +237,7 @@
       </div>
     </div>
   </div>
+  <div id="viewstatus" class="hint"></div>
   <div id="keyline" class="hint" style="margin-bottom:8px"></div>
   <div id="minis"><span class="empty">Skriv nogle akkorder herover…</span></div>
   <div class="row" style="margin-top:12px;gap:8px">
@@ -926,10 +930,21 @@ function updateKeyline(){
   if(!first){ el.textContent=""; return; }
   el.textContent = "Toneart: " + first.rootName + (isMinorish(first.qname)? "-mol" : "-dur");
 }
+function updateViewStatus(){
+  const el=$("viewstatus"), card=$("songcard"); if(!el||!card) return;
+  const n=song.filter(it=>!it.error).length;
+  if(fullFormOn && songForm && songForm.length){
+    el.textContent = `Viser: hele sangens forløb (${n} akkorder)`;
+    el.classList.add("full"); card.classList.add("fullform");
+  } else {
+    el.textContent = n? `Viser: hvert afsnit én gang (${n} akkorder)` : "";
+    el.classList.remove("full"); card.classList.remove("fullform");
+  }
+}
 function refresh(){
   chain=computeChain();
   if(active>=song.length) active=Math.max(0,song.length-1);
-  renderMinis(); suggestNext(); setActive(active); updateKeyline(); writeURL();
+  renderMinis(); suggestNext(); setActive(active); updateKeyline(); updateViewStatus(); writeURL();
 }
 const TOKEN_RE=/\[[^\]]*\]|[^\s,]+/g; // afsnitsmarkører som [Vers] holdes samlet, akkorder splittes som før
 function parseInput(){
