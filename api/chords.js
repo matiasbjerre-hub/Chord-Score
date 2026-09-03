@@ -10,8 +10,9 @@ const SCHEMA = {
     c: { type: "string" },
     bpm: { type: "integer" },
     bpc: { type: "integer" },
+    form: { type: "array", items: { type: "string" } },
   },
-  required: ["found", "t", "a", "c", "bpm", "bpc"],
+  required: ["found", "t", "a", "c", "bpm", "bpc", "form"],
   additionalProperties: false,
 };
 
@@ -33,13 +34,19 @@ Reglerne for akkordstrengen "c":
   "[Intro] C C G G [Vers] Am Am F F C C G G [Omkvæd] F F G G C C Am Am [Bro] Dm Dm G7 G7"
 - Brug kun de afsnit sangen faktisk har, med korte danske navne: Intro, Vers, Omkvæd, Bro, Outro
   (udelad afsnit der ikke findes, og udelad markørerne helt hvis sangen kun har ét gennemgående forløb).
-- Skriv hvert afsnit taktnøjagtigt ud ÉN gang, uanset om sangen reelt gentager afsnittet flere
-  gange (fx to vers med samme akkorder) — gentag ikke selve afsnittet i outputtet.
+- Skriv hvert afsnit taktnøjagtigt ud ÉN gang i "c", uanset om sangen reelt gentager afsnittet flere
+  gange (fx to vers med samme akkorder) — gentag ikke selve afsnittet i "c".
 - Kun disse akkordkvaliteter må bruges: ingen suffiks (dur), m, 7, maj7, m7, dim, aug, sus2, sus4, 6, 9, add9, m7b5, samt skråstregs-bastone som C/E.
 - Brug store bogstaver for grundtonen (C, D, Eb, F#, ...).
+
+Feltet "form" er sangens FULDE reelle forløb: en liste af afsnitsnavne (samme navne som brugt i "c",
+uden firkantede parenteser) i den rækkefølge de rent faktisk synges/spilles, inkl. gentagelser, fx
+["Intro","Vers","Omkvæd","Vers","Omkvæd","Bro","Omkvæd","Outro"]. Har sangen intet afsnit i "c"
+(ét gennemgående forløb), så returnér "form" som en tom liste [].
+
 - "bpm" er et realistisk tempo-gæt mellem 40 og 200.
 - "t" og "a" ekko'er den angivne titel/kunstner, evt. med korrekt stavning.
-Sæt "found": false og lad de øvrige felter være tomme streng/0, hvis du ikke er rimeligt sikker på sangens akkorder eller taktopbygning. Gæt aldrig useriøst — det er bedre at sige nej.`;
+Sæt "found": false og lad de øvrige felter være tomme streng/0/[] , hvis du ikke er rimeligt sikker på sangens akkorder eller taktopbygning. Gæt aldrig useriøst — det er bedre at sige nej.`;
 
 // Simpel, best-effort rate-limiting pr. IP (i hukommelsen — nulstilles ved kolde starter,
 // men bremser almindeligt misbrug af et offentligt, unauthenticated endpoint uden ekstern afhængighed).
