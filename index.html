@@ -59,8 +59,9 @@
 
   /* stor visning af aktuel akkord */
   .curname{font-size:24px;font-weight:700;margin:2px 0 10px}
-  #bigkb{max-width:720px}
+  #bigkb{max-width:720px;cursor:pointer}
   #bigkb svg{border-radius:0 0 8px 8px}
+  #bigkb [data-note].seqhi{stroke:#fff!important;stroke-width:4!important;filter:drop-shadow(0 0 6px #fff)}
   .details{display:flex;gap:26px;flex-wrap:wrap;margin-top:12px;font-size:14px}
   .details b{color:var(--txt)}
   .details span{color:var(--muted)}
@@ -82,8 +83,11 @@
   /* mini-klaviaturer (hele sangen) */
   #minis{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
   .section-head{grid-column:1/-1;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--accent);margin-top:8px;padding-top:10px;border-top:1px solid var(--line)}
+    color:var(--accent);margin-top:8px;padding-top:10px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:8px}
   .section-head:first-child{margin-top:0;padding-top:0;border-top:none}
+  .sh-del{background:transparent;border:0;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+  .sh-del:hover{color:var(--txt);background:#ffffff14}
   .secbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
     color:var(--accent);background:#11141a;border:1px solid var(--line);border-radius:6px;padding:2px 8px;
     vertical-align:middle}
@@ -148,6 +152,11 @@
   <div class="row" style="margin-top:12px;gap:10px">
     <button id="copybtn" class="btn">🔗 Kopiér link</button>
     <button id="printbtn" class="btn">🖨 Print / gem som PDF</button>
+    <div class="row" style="gap:4px;flex:0 0 auto;align-items:center">
+      <span class="hint" style="margin:0">Transponér:</span>
+      <button id="transdown" class="btn" type="button" aria-label="Transponér ned en halvtone">−1</button>
+      <button id="transup" class="btn" type="button" aria-label="Transponér op en halvtone">+1</button>
+    </div>
     <div style="flex:1"></div>
     <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>9</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
   </div>
@@ -215,8 +224,23 @@
 </div>
 
 <div class="card">
-  <label>Sangen — klik på en akkord for at forstørre den ovenfor</label>
+  <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:10px">
+    <label style="margin:0">Sangen — klik på en akkord for at forstørre den ovenfor</label>
+    <div style="flex:0 0 auto">
+      <label>Visning</label>
+      <div class="seg" id="formseg" role="radiogroup" aria-label="Visning">
+        <button data-form="once" class="on" role="radio" aria-checked="true">Hvert afsnit</button>
+        <button data-form="full" role="radio" aria-checked="false">Hele sangen</button>
+      </div>
+    </div>
+  </div>
+  <div id="keyline" class="hint" style="margin-bottom:8px"></div>
   <div id="minis"><span class="empty">Skriv nogle akkorder herover…</span></div>
+  <div class="row" style="margin-top:12px;gap:8px">
+    <label style="flex:0 0 auto;margin:0">Tilføj afsnit:</label>
+    <input id="newsecname" type="text" placeholder="fx Vers 2" style="flex:1 1 160px;min-width:120px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#11141a;color:var(--txt);font-size:13px">
+    <button id="addsecbtn" class="btn">+ Tilføj</button>
+  </div>
 </div>
 
 <div class="card">
@@ -232,6 +256,7 @@
 <script>
 /* ---------- musikteori ---------- */
 const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLAT_NOTES = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 const PC = {C:0,"C#":1,DB:1,D:2,"D#":3,EB:3,E:4,F:5,"F#":6,GB:6,G:7,"G#":8,AB:8,A:9,"A#":10,BB:10,B:11};
 
 const QUAL = {
@@ -358,7 +383,7 @@ function drawKB(v,{W=680,H=150,fng=true}={}){
     const black=isB(p%12), r=Math.min(ww*0.42,16);
     const cx=xOf(p)+(black?bw/2:ww/2), cy=black? bh-r-3 : wh-r-5;
     const root=(p%12)===v.rootPC, fill= root?"#ff7a59":(black?"#ffce54":"#4f9dff");
-    s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${root?'#fff':'#0b0d12'}" stroke-width="${root?2.5:0.8}"/>`;
+    s+=`<circle data-note="${i}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${root?'#fff':'#0b0d12'}" stroke-width="${root?2.5:0.8}"/>`;
     if(fng) s+=`<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="${(r*1.15).toFixed(1)}" font-weight="700" font-family="sans-serif" text-anchor="middle" dominant-baseline="central" fill="${black&&!root?'#111':'#fff'}">${finger[i]}</text>`;
   });
   return s+`</svg>`;
@@ -516,7 +541,7 @@ function drawGtr(v,{W=420,H=260,fng=true}={}){
   fretted.forEach(({f,i})=>{
     const x=padSide+i*gw, row=f-startFret, y=padTop+row*gh+gh/2, r=Math.min(gw*0.34,14);
     const root=(GSTR[i]+f)%12===v.rootPC, fill=root?"#ff7a59":"#4f9dff";
-    s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${root?'#fff':'#0b0d12'}" stroke-width="${root?2.2:0.8}"/>`;
+    s+=`<circle data-note="${i}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="${root?'#fff':'#0b0d12'}" stroke-width="${root?2.2:0.8}"/>`;
     if(fng) s+=`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${(r*1.1).toFixed(1)}" font-weight="700" font-family="sans-serif" text-anchor="middle" dominant-baseline="central" fill="#fff">${v.fingers[i]}</text>`;
   });
   return s+`</svg>`;
@@ -629,6 +654,7 @@ const SONGS = [
 
 /* ---------- state ---------- */
 let hand="R", mode="auto", bpc=4, song=[], active=0, chain=[], instrument="piano";
+let baseChordInput=null, songForm=null, fullFormOn=false;
 const $=id=>document.getElementById(id);
 function chName(item){ return item.rootName+item.qname+(item.bassPC!=null?"/"+NOTES[item.bassPC]:""); }
 function getV(idx){
@@ -644,6 +670,7 @@ function applyInstrumentUI(){
 /* ---------- render ---------- */
 function setActive(i){
   active=i;
+  stopNoteSequence();
   const item=song[i], nameEl=$("curname"), det=$("details"), big=$("bigkb");
   if(!item || item.error){
     nameEl.textContent = item? "„"+item.sym+"“ — kunne ikke tolkes" : "—";
@@ -677,6 +704,37 @@ function setActive(i){
   }
   markMini(i);
 }
+let seqTimer=null;
+function stopNoteSequence(){
+  if(seqTimer){ clearTimeout(seqTimer); seqTimer=null; }
+  const big=$("bigkb"); if(big) big.querySelectorAll("[data-note].seqhi").forEach(el=>el.classList.remove("seqhi"));
+}
+function playNoteSequence(){
+  const v=getV(active); if(!v) return;
+  stopNoteSequence();
+  const big=$("bigkb");
+  const els=[...big.querySelectorAll("[data-note]")];
+  const bySlot={}; els.forEach(el=> bySlot[+el.dataset.note]=el);
+  const notes = instrument==="guitar"
+    ? v.frets.map((f,idx)=>({idx,f})).filter(x=>x.f>=0).map(x=> ({idx:x.idx, pitch:GSTR[x.idx]+x.f}))
+    : v.pitches.map((p,idx)=>({idx,pitch:p}));
+  if(!notes.length) return;
+  const seq=[]; for(let rep=0; rep<2; rep++) seq.push(...notes);
+  const noteMs=550;
+  let step=0;
+  ac().resume();
+  const tick=()=>{
+    big.querySelectorAll("[data-note].seqhi").forEach(el=>el.classList.remove("seqhi"));
+    if(step>=seq.length){ seqTimer=null; return; }
+    const n=seq[step];
+    const el=bySlot[n.idx]; if(el) el.classList.add("seqhi");
+    if(!$("snd") || $("snd").checked) beep(mtof(n.pitch), ac().currentTime, noteMs/1000*0.9, 0.16, "triangle");
+    step++;
+    seqTimer=setTimeout(tick, noteMs);
+  };
+  tick();
+}
+$("bigkb").addEventListener("click", playNoteSequence);
 function markMini(i){
   const btns=$("minis").querySelectorAll(".mini");
   btns.forEach(b=>{
@@ -692,7 +750,12 @@ function renderMinis(){
   let lastSection=null;
   song.forEach((item,i)=>{
     if(item.section && item.section!==lastSection){
-      const h=document.createElement("div"); h.className="section-head"; h.textContent=item.section;
+      const h=document.createElement("div"); h.className="section-head";
+      const label=document.createElement("span"); label.textContent=item.section; h.appendChild(label);
+      const del=document.createElement("button"); del.type="button"; del.className="sh-del"; del.textContent="×";
+      del.setAttribute("aria-label","Slet afsnittet "+item.section);
+      del.onclick=(e)=>{ e.stopPropagation(); deleteSectionAt(i); };
+      h.appendChild(del);
       wrap.appendChild(h);
     }
     lastSection=item.section||null;
@@ -847,10 +910,17 @@ function readURL(){
 }
 
 /* ---------- refresh + input ---------- */
+function isMinorish(qname){ return /^m(?!aj)/.test(qname) || qname==="dim" || qname==="dim7"; }
+function updateKeyline(){
+  const el=$("keyline"); if(!el) return;
+  const first=song.find(it=>!it.error);
+  if(!first){ el.textContent=""; return; }
+  el.textContent = "Toneart: " + first.rootName + (isMinorish(first.qname)? "-mol" : "-dur");
+}
 function refresh(){
   chain=computeChain();
   if(active>=song.length) active=Math.max(0,song.length-1);
-  renderMinis(); suggestNext(); setActive(active); writeURL();
+  renderMinis(); suggestNext(); setActive(active); updateKeyline(); writeURL();
 }
 const TOKEN_RE=/\[[^\]]*\]|[^\s,]+/g; // afsnitsmarkører som [Vers] holdes samlet, akkorder splittes som før
 function parseInput(){
@@ -866,11 +936,47 @@ function parseInput(){
   if(active>=song.length) active=Math.max(0,song.length-1);
   refresh();
 }
-$("inp").addEventListener("input", parseInput);
+$("inp").addEventListener("input", ()=>{
+  baseChordInput=$("inp").value; songForm=null; fullFormOn=false;
+  updateFormSegAvailability(); setSeg("#formseg","form","once");
+  parseInput();
+});
+function detectFlatPref(str){ return /[A-Ga-g]b(?![A-Za-z])/.test(str); }
+function transposeToken(tok, semi, useFlat){
+  const m = tok.match(/^([A-Ga-g])([#b]?)([^\/]*)(?:\/([A-Ga-g])([#b]?))?$/);
+  if(!m) return tok;
+  const table = useFlat? FLAT_NOTES : NOTES;
+  const shift=(letter,acc)=>{
+    const pc = PC[letter.toUpperCase()+(acc? acc.toUpperCase():"")] ?? PC[letter.toUpperCase()];
+    return table[((pc+semi)%12+12)%12];
+  };
+  let out = shift(m[1],m[2]) + m[3];
+  if(m[4]) out += "/" + shift(m[4],m[5]);
+  return out;
+}
+function transposeText(str, semi){
+  const useFlat=detectFlatPref(str);
+  const tokens = str.match(TOKEN_RE) || [];
+  return tokens.map(t=> t.startsWith("[")? t : transposeToken(t, semi, useFlat)).join(" ");
+}
+function transposeInput(semi){
+  const cur=$("inp").value; if(!cur.trim()) return;
+  $("inp").value = transposeText(cur, semi);
+  if(baseChordInput!=null) baseChordInput = transposeText(baseChordInput, semi);
+  parseInput();
+}
+$("transup").onclick=()=> transposeInput(1);
+$("transdown").onclick=()=> transposeInput(-1);
 document.querySelectorAll("#instseg button").forEach(b=> b.onclick=()=>{ instrument=b.dataset.inst; setSeg("#instseg","inst",instrument); applyInstrumentUI(); refresh(); });
 document.querySelectorAll("#handseg button").forEach(b=> b.onclick=()=>{ hand=b.dataset.hand; setSeg("#handseg","hand",hand); refresh(); });
 document.querySelectorAll("#modeseg button").forEach(b=> b.onclick=()=>{ mode=b.dataset.mode; setSeg("#modeseg","mode",mode); refresh(); });
 document.querySelectorAll("#bpcseg button").forEach(b=> b.onclick=()=>{ bpc=+b.dataset.b; setSeg("#bpcseg","b",b.dataset.b); writeURL(); });
+document.querySelectorAll("#formseg button").forEach(b=> b.onclick=()=>{
+  if(b.disabled) return;
+  fullFormOn = b.dataset.form==="full";
+  setSeg("#formseg","form",b.dataset.form);
+  applyFormMode();
+});
 $("printbtn").onclick=()=>{ renderPrintSheet(); window.print(); };
 $("copybtn").onclick=()=>{
   writeURL();
@@ -962,9 +1068,75 @@ function flashDisplay(){
   el.classList.add("flash");
   el.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
-function chooseSong(s){
-  $("inp").value=s.c;
+function deleteSectionAt(startIdx){
+  const targetSec=song[startIdx].section;
+  let endIdx=startIdx;
+  while(endIdx<song.length && song[endIdx].section===targetSec) endIdx++;
+  const tokens=$("inp").value.match(TOKEN_RE) || [];
+  const out=[]; let idx=0;
+  tokens.forEach(tok=>{
+    if(/^\[[^\]]*\]$/.test(tok)){ out.push(tok); return; }
+    if(idx>=startIdx && idx<endIdx){ idx++; return; }
+    idx++; out.push(tok);
+  });
+  const cleaned=[];
+  for(let k=0;k<out.length;k++){
+    const tok=out[k];
+    if(/^\[[^\]]*\]$/.test(tok)){
+      const next=out[k+1];
+      if(!next || /^\[[^\]]*\]$/.test(next)) continue; // markør uden akkorder efter -> drop
+    }
+    cleaned.push(tok);
+  }
+  $("inp").value=cleaned.join(" ");
+  $("inp").dispatchEvent(new Event("input"));
+}
+$("addsecbtn").onclick=()=>{
+  const name=$("newsecname").value.trim();
+  if(!name) return;
+  const cur=$("inp").value.trim();
+  $("inp").value=(cur? cur+" ":"")+"["+name+"]";
+  $("newsecname").value="";
+  $("inp").dispatchEvent(new Event("input"));
+  $("inp").focus();
+};
+$("newsecname").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); $("addsecbtn").click(); } });
+function buildExpandedInput(){
+  if(!songForm || !songForm.length || !baseChordInput) return null;
+  const tokens = baseChordInput.match(TOKEN_RE) || [];
+  const groups={}; let sec="";
+  tokens.forEach(tok=>{
+    const m=tok.match(/^\[([^\]]*)\]$/);
+    if(m){ sec=m[1].trim(); return; }
+    (groups[sec]=groups[sec]||[]).push(tok);
+  });
+  const parts=[];
+  songForm.forEach(name=>{
+    const chords=groups[name];
+    if(!chords || !chords.length) return; // ukendt afsnitsnavn i form — spring over
+    parts.push("["+name+"]", ...chords);
+  });
+  return parts.length? parts.join(" ") : null;
+}
+function updateFormSegAvailability(){
+  const seg=$("formseg");
+  if(seg) seg.querySelectorAll("button").forEach(b=> b.disabled = b.dataset.form==="full" && !(songForm&&songForm.length));
+}
+function applyFormMode(){
+  updateFormSegAvailability();
+  if(fullFormOn){
+    const expanded=buildExpandedInput();
+    $("inp").value = expanded!=null? expanded : (baseChordInput!=null? baseChordInput : $("inp").value);
+  } else if(baseChordInput!=null){
+    $("inp").value = baseChordInput;
+  }
   parseInput();
+}
+function chooseSong(s){
+  baseChordInput=s.c;
+  songForm=Array.isArray(s.form)&&s.form.length? s.form : null;
+  setSeg("#formseg","form", fullFormOn&&songForm? "full":"once");
+  applyFormMode();
   if(s.bpm){ $("bpm").value=s.bpm; $("bpmval").textContent=s.bpm; }
   if(s.bpc){ bpc=s.bpc; setSeg("#bpcseg","b",String(s.bpc)); }
   writeURL();
@@ -1040,10 +1212,11 @@ async function runAiSearch(q){
     const data=await resp.json();
     if(!data.found || !String(data.c||"").trim()){ showAiStatus("AI kunne ikke finde akkorder til denne sang."); return; }
     const bpc=[1,2,4].includes(+data.bpc)?+data.bpc:4;
-    const song={t:data.t||q, a:data.a||"Fundet af AI", c:data.c, bpm:(+data.bpm||90), bpc};
+    const form=Array.isArray(data.form)&&data.form.length? data.form : null;
+    const song={t:data.t||q, a:data.a||"Fundet af AI", c:data.c, bpm:(+data.bpm||90), bpc, form};
     showAiResult(song);
     const list=loadMySongs().filter(s=>s.t!==song.t);
-    list.push({t:song.t, a:song.a, c:song.c, bpm:song.bpm, bpc:song.bpc});
+    list.push({t:song.t, a:song.a, c:song.c, bpm:song.bpm, bpc:song.bpc, form:song.form});
     saveMySongs(list); // cachet lokalt, så samme sang ikke koster et nyt AI-opslag
   } catch(e){
     if(seq===aiSearchSeq) showAiStatus("Kunne ikke kontakte AI-søgningen.");
