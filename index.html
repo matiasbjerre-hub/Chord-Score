@@ -165,7 +165,7 @@
       <button id="transup" class="btn" type="button" aria-label="Transponér op en halvtone">+1</button>
     </div>
     <div style="flex:1"></div>
-    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>6/9</kbd> <kbd>9</kbd> <kbd>11</kbd> <kbd>13</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> <kbd>7sus4</kbd> <kbd>7b9</kbd> <kbd>7#9</kbd> <kbd>7#11</kbd> m.fl. · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
+    <div class="hint" style="align-self:center">Understøtter: <kbd>m</kbd> <kbd>5</kbd> <kbd>7</kbd> <kbd>maj7</kbd> <kbd>m7</kbd> <kbd>dim</kbd> <kbd>aug</kbd> <kbd>sus2</kbd> <kbd>sus4</kbd> <kbd>6</kbd> <kbd>6/9</kbd> <kbd>9</kbd> <kbd>11</kbd> <kbd>13</kbd> <kbd>add9</kbd> <kbd>m7b5</kbd> <kbd>7sus4</kbd> <kbd>7b9</kbd> <kbd>7#9</kbd> <kbd>7#11</kbd> m.fl. · bas: <kbd>C/E</kbd> · afsnit: <kbd>[Vers]</kbd> <kbd>[Omkvæd]</kbd></div>
   </div>
 </div>
 
@@ -272,6 +272,7 @@ const QUAL = {
   "m":{name:"m",iv:[0,3,7]}, "min":{name:"m",iv:[0,3,7]}, "-":{name:"m",iv:[0,3,7]},
   "dim":{name:"dim",iv:[0,3,6]}, "°":{name:"dim",iv:[0,3,6]},
   "aug":{name:"aug",iv:[0,4,8]}, "+":{name:"aug",iv:[0,4,8]},
+  "5":{name:"5",iv:[0,7]},
   "sus2":{name:"sus2",iv:[0,2,7]}, "sus4":{name:"sus4",iv:[0,5,7]}, "sus":{name:"sus4",iv:[0,5,7]},
   "6":{name:"6",iv:[0,4,7,9]}, "m6":{name:"m6",iv:[0,3,7,9]},
   "6/9":{name:"6/9",iv:[0,4,7,9,14]}, "69":{name:"6/9",iv:[0,4,7,9,14]},
@@ -287,6 +288,7 @@ const QUAL = {
   "m7#5":{name:"m7#5",iv:[0,3,8,10]},
   "add9":{name:"add9",iv:[0,4,7,14]}, "madd9":{name:"madd9",iv:[0,3,7,14]},
   "add11":{name:"add11",iv:[0,4,7,17]}, "add13":{name:"add13",iv:[0,4,7,21]}, "madd11":{name:"madd11",iv:[0,3,7,17]},
+  "m7add11":{name:"m7add11",iv:[0,3,7,10,17]},
   "9":{name:"9",iv:[0,4,7,10,14]}, "maj9":{name:"maj9",iv:[0,4,7,11,14]}, "m9":{name:"m9",iv:[0,3,7,10,14]},
   "11":{name:"11",iv:[0,4,7,10,14,17]}, "maj11":{name:"maj11",iv:[0,4,7,11,14,17]}, "m11":{name:"m11",iv:[0,3,7,10,14,17]},
   "13":{name:"13",iv:[0,4,7,10,14,21]}, "maj13":{name:"maj13",iv:[0,4,7,11,14,21]}, "m13":{name:"m13",iv:[0,3,7,10,14,21]},

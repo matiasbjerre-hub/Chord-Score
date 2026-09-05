@@ -36,8 +36,8 @@ Reglerne for akkordstrengen "c":
   (udelad afsnit der ikke findes, og udelad markørerne helt hvis sangen kun har ét gennemgående forløb).
 - Skriv hvert afsnit taktnøjagtigt ud ÉN gang i "c", uanset om sangen reelt gentager afsnittet flere
   gange (fx to vers med samme akkorder) — gentag ikke selve afsnittet i "c".
-- Kun disse akkordkvaliteter må bruges: ingen suffiks (dur), m, 7, maj7, M7, m7, min, min7, dim, dim7, aug, sus2, sus4, sus,
-  6, m6, 6/9, m6/9, 9, maj9, m9, 11, maj11, m11, 13, maj13, m13, add9, madd9, add11, add13, madd11,
+- Kun disse akkordkvaliteter må bruges: ingen suffiks (dur), 5, m, 7, maj7, M7, m7, min, min7, dim, dim7, aug, sus2, sus4, sus,
+  6, m6, 6/9, m6/9, 9, maj9, m9, 11, maj11, m11, 13, maj13, m13, add9, madd9, add11, add13, madd11, m7add11,
   m7b5, 7sus4, 9sus4, 7b5, 7#5, 7b9, 7#9, 7#11, maj7#5, maj7b5, m7#5, samt skråstregs-bastone som C/E.
 - Brug store bogstaver for grundtonen (C, D, Eb, F#, ...).
 
