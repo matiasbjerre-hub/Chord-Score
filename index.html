@@ -55,6 +55,8 @@
   #songresults .sr-del{flex:0 0 auto;background:transparent;border:0;color:var(--muted);font-size:15px;
     cursor:pointer;padding:2px 7px;border-radius:6px;line-height:1}
   #songresults .sr-del:hover{color:var(--root);background:#241417}
+  #songresults .sr-fav{flex:0 0 auto;background:transparent;border:0;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px}
+  #songresults .sr-fav.on,#songresults .sr-fav:hover{color:var(--gold)}
 
   /* fokus-markering (tilgængelighed) */
   a:focus-visible,button:focus-visible,input:focus-visible,.mini:focus-visible,.chip:focus-visible{
@@ -139,6 +141,28 @@
 
 <h1>🎹 Chord Score</h1>
 <p class="sub">Skriv akkorderne til sangen, se dem på klaviatur eller guitarhals, og find den bedste fingersætning.</p>
+
+<div class="card" id="authcard">
+  <div class="row" style="align-items:center;gap:10px">
+    <span class="hint" id="authStateText" style="margin:0">Gæst — dine sange gemmes kun i denne browser.</span>
+    <div style="flex:1"></div>
+    <button id="authToggleBtn" class="btn" style="flex:0 0 auto">Log ind / opret bruger</button>
+  </div>
+  <div id="authPanel" hidden style="margin-top:14px">
+    <div class="seg" id="authModeSeg" role="radiogroup" aria-label="Login-metode" style="margin-bottom:10px">
+      <button type="button" data-mode="new" class="on" role="radio" aria-checked="true">Ny bruger</button>
+      <button type="button" data-mode="existing" role="radio" aria-checked="false">Jeg har en kode</button>
+    </div>
+    <div class="row" style="gap:10px;align-items:flex-end">
+      <div style="flex:1 1 200px">
+        <label for="authInput" id="authInputLabel">Dit navn</label>
+        <input id="authInput" type="text" placeholder="fx Matias">
+      </div>
+      <button id="authSubmitBtn" class="btn" style="flex:0 0 auto">Opret bruger</button>
+    </div>
+    <div id="authStatus" class="hint" aria-live="polite"></div>
+  </div>
+</div>
 
 <div class="card">
   <label for="songsearch">Søg efter sang</label>
@@ -1023,9 +1047,11 @@ function parseInput(){
   });
   if(active>=song.length) active=Math.max(0,song.length-1);
   refresh();
+  scheduleOverrideSave();
 }
 $("inp").addEventListener("input", ()=>{
   baseChordInput=$("inp").value; songForm=null; fullFormOn=false; songLyrics=null;
+  if(!$("inp").value.trim()) currentSongKey=null;
   updateFormSegAvailability(); setSeg("#formseg","form","once");
   parseInput();
 });
@@ -1072,6 +1098,119 @@ $("copybtn").onclick=()=>{
   navigator.clipboard.writeText(location.href).then(()=>{ $("copybtn").textContent="✓ Kopieret"; setTimeout(()=>$("copybtn").textContent=t,1500); });
 };
 
+/* ---------- konto (login/gæst) ----------
+   Gæster gemmes udelukkende lokalt (som "mine sange" altid har gjort). Logger man ind,
+   bliver den samme lokale localStorage brugt som cache, og hvert kald der alligevel gemmer
+   lokalt, sender også ændringen til /api/me — så kontoen virker på tværs af browsere/enheder
+   uden at gæste-flowet skal kende til login overhovedet. */
+const FAVORITES_KEY = "klaver-akkorder:favoritter";
+const OVERRIDES_KEY = "klaver-akkorder:mine-rettelser";
+function loadLocal(key, fallback){
+  try{ const raw=localStorage.getItem(key); return raw? JSON.parse(raw) : fallback; }
+  catch(e){ return fallback; }
+}
+function saveLocal(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }
+  catch(e){ /* localStorage utilgængelig (privat tilstand e.l.) — springes stille over */ }
+}
+function songKey(s){ return normalizeText(s.t||"")+"|"+normalizeText(s.a||""); }
+
+let account = { guest:true, name:null, favorites:[], songOverrides:{} };
+let currentSongKey = null;
+
+function syncAccountField(key, value){
+  if(account.guest) return;
+  fetch("/api/me",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({[key]:value})}).catch(()=>{});
+}
+function mergeSongLists(a,b){ const m=new Map(); [...a,...b].forEach(s=>m.set(s.t,s)); return [...m.values()]; }
+function mergeArrays(a,b){ return [...new Set([...a,...b])]; }
+
+async function loadAccount(){
+  account.favorites = loadLocal(FAVORITES_KEY, []);
+  account.songOverrides = loadLocal(OVERRIDES_KEY, {});
+  try{
+    const resp = await fetch("/api/me");
+    const data = await resp.json();
+    if(resp.ok && !data.guest){
+      account = {
+        guest:false, name:data.name,
+        favorites: mergeArrays(data.favorites||[], account.favorites),
+        songOverrides: {...(data.songOverrides||{}), ...account.songOverrides},
+      };
+      saveLocal(FAVORITES_KEY, account.favorites);
+      saveLocal(OVERRIDES_KEY, account.songOverrides);
+      syncAccountField("favorites", account.favorites);
+      syncAccountField("songOverrides", account.songOverrides);
+      saveMySongs(mergeSongLists(data.uploads||[], loadMySongs())); // synker "mine sange" begge veje
+    }
+  } catch(e){ /* offline/fejl — fortsætter som gæst med det lokale */ }
+  renderAuthUI();
+}
+function renderAuthUI(){
+  $("authStateText").textContent = account.guest ? "Gæst — dine sange gemmes kun i denne browser." : "Logget ind som "+account.name;
+  $("authToggleBtn").textContent = account.guest ? "Log ind / opret bruger" : "Log ud";
+  if(songResultsList.length) renderSongResults(songResultsList);
+}
+$("authToggleBtn").onclick = async ()=>{
+  if(account.guest){
+    $("authPanel").hidden = !$("authPanel").hidden;
+    return;
+  }
+  await fetch("/api/auth",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"logout"})}).catch(()=>{});
+  account = {guest:true, name:null, favorites:loadLocal(FAVORITES_KEY,[]), songOverrides:loadLocal(OVERRIDES_KEY,{})};
+  $("authPanel").hidden = true;
+  renderAuthUI();
+};
+let authMode="new";
+document.querySelectorAll("#authModeSeg button").forEach(b=> b.onclick=()=>{
+  authMode=b.dataset.mode;
+  document.querySelectorAll("#authModeSeg button").forEach(x=>{ x.classList.toggle("on",x===b); x.setAttribute("aria-checked", x===b?"true":"false"); });
+  $("authInputLabel").textContent = authMode==="new" ? "Dit navn" : "Din kode";
+  $("authInput").placeholder = authMode==="new" ? "fx Matias" : "8 tegn";
+  $("authSubmitBtn").textContent = authMode==="new" ? "Opret bruger" : "Log ind";
+  $("authStatus").textContent="";
+});
+$("authSubmitBtn").onclick = async ()=>{
+  const val = $("authInput").value.trim();
+  if(!val) return;
+  $("authStatus").textContent="Vent lidt …";
+  try{
+    const body = authMode==="new" ? {action:"signup", name:val} : {action:"login", code:val};
+    const resp = await fetch("/api/auth",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+    const data = await resp.json();
+    if(!resp.ok){ $("authStatus").textContent = data.error || "Noget gik galt."; return; }
+    $("authInput").value="";
+    if(authMode==="new"){
+      await loadAccount();
+      $("authStatus").innerHTML = "Din kode: <b style=\"font-size:18px;letter-spacing:2px\">"+escapeHtml(data.code)+"</b> — skriv den ned, den vises kun her!";
+    } else {
+      await loadAccount();
+      $("authPanel").hidden = true;
+    }
+  } catch(e){
+    $("authStatus").textContent="Kunne ikke kontakte serveren.";
+  }
+};
+function toggleFavorite(key, btnEl){
+  const i=account.favorites.indexOf(key);
+  if(i===-1) account.favorites.push(key); else account.favorites.splice(i,1);
+  const on=i===-1;
+  btnEl.classList.toggle("on",on); btnEl.textContent=on?"★":"☆";
+  btnEl.setAttribute("aria-label",(on?"Fjern":"Tilføj")+" favorit");
+  saveLocal(FAVORITES_KEY, account.favorites);
+  syncAccountField("favorites", account.favorites);
+}
+let overrideSaveTimer=null;
+function scheduleOverrideSave(){
+  if(!currentSongKey) return;
+  clearTimeout(overrideSaveTimer);
+  overrideSaveTimer=setTimeout(()=>{
+    account.songOverrides[currentSongKey] = { c: $("inp").value, form: songForm||null, bpm:+$("bpm").value, bpc };
+    saveLocal(OVERRIDES_KEY, account.songOverrides);
+    syncAccountField("songOverrides", account.songOverrides);
+  }, 1200);
+}
+
 /* ---------- sangsøgning ---------- */
 const MY_SONGS_KEY = "klaver-akkorder:mine-sange";
 function loadMySongs(){
@@ -1081,6 +1220,7 @@ function loadMySongs(){
 function saveMySongs(list){
   try{ localStorage.setItem(MY_SONGS_KEY, JSON.stringify(list)); }
   catch(e){ /* localStorage utilgængelig (privat tilstand e.l.) — springes stille over */ }
+  syncAccountField("uploads", list);
 }
 function normalizeText(s){
   return s.toLowerCase()
@@ -1135,6 +1275,11 @@ function renderSongResults(list){
     main.querySelector(".sr-t").textContent=s.t;
     main.querySelector(".sr-a").textContent=s.a;
     li.appendChild(main);
+    const key=songKey(s), isFav=account.favorites.includes(key);
+    const fav=document.createElement("button"); fav.type="button"; fav.className="sr-fav"+(isFav?" on":"");
+    fav.setAttribute("aria-label",(isFav?"Fjern":"Tilføj")+" favorit"); fav.textContent=isFav?"★":"☆";
+    fav.addEventListener("click",(e)=>{ e.stopPropagation(); toggleFavorite(key, fav); });
+    li.appendChild(fav);
     if(s.mine){
       const badge=document.createElement("span"); badge.className="sr-badge"; badge.textContent="★ Min";
       li.appendChild(badge);
@@ -1221,19 +1366,23 @@ function applyFormMode(){
   parseInput();
 }
 function chooseSong(s){
-  baseChordInput=s.c;
-  songForm=Array.isArray(s.form)&&s.form.length? s.form : null;
+  currentSongKey = songKey(s);
+  const ov = account.songOverrides[currentSongKey];
+  const src = ov || s;
+  baseChordInput=src.c;
+  songForm=Array.isArray(src.form)&&src.form.length? src.form : null;
   songLyrics=null; // katalog/AI-søgning bærer aldrig sangtekst — kun PDF-upload gør
   setSeg("#formseg","form", fullFormOn&&songForm? "full":"once");
   applyFormMode();
-  if(s.bpm){ $("bpm").value=s.bpm; $("bpmval").textContent=s.bpm; }
-  if(s.bpc){ bpc=s.bpc; setSeg("#bpcseg","b",String(s.bpc)); }
+  if(src.bpm){ $("bpm").value=src.bpm; $("bpmval").textContent=src.bpm; }
+  if(src.bpc){ bpc=src.bpc; setSeg("#bpcseg","b",String(src.bpc)); }
   writeURL();
   songSearchEl.value=s.t;
   showSongResults(false);
   flashDisplay();
 }
 function loadUploadedSong(data){
+  currentSongKey = data.t ? songKey({t:data.t, a:data.a||""}) : null;
   fullFormOn=false; setSeg("#formseg","form","once");
   baseChordInput=data.c;
   songForm=Array.isArray(data.form)&&data.form.length? data.form : null;
@@ -1424,6 +1573,7 @@ document.addEventListener("keydown",e=>{ if(e.code==="Space" && e.target.tagName
 window.addEventListener("hashchange", ()=>{ readURL(); parseInput(); });
 readURL();
 parseInput();
+loadAccount();
 </script>
 </body>
 </html>
